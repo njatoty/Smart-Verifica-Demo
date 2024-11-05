@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&display=swap');
+
+@layer components {
+
+    * {
+        font-family: 'Hanken Grotesk';    
+    }
+
+    .menu-item{
+        @apply flex py-2 px-4 hover:bg-slate-200 rounded-xl w-full items-center text-base gap-2 text-nowrap
+    }
+    .menu-item > span {
+        @apply ml-auto opacity-90 p-1 text-xs font-bold rounded-xl bg-slate-400 border text-white h-5 w-5 flex items-center justify-center
+    }
+
+    .dropdown-menu li > .menu-item {
+        @apply px-2
+    }
+
+    .menu-item.open {
+        @apply font-semibold bg-slate-200
+    }
+
+    .menu-item.active {
+        @apply  bg-blue-100 font-bold text-blue-500
+    }
+    
+    .menu-item.active > span {
+        @apply  bg-blue-400 font-bold
+    }
+
+    .document__page {
+        @apply bg-[#F1F3F5] h-screen flex flex-col items-stretch;
+    }
+    
+
+    .layout__page {
+        @apply bg-[#F1F3F5] h-screen flex flex-col items-stretch overflow-x-hidden;
+    }
+
+    /* Doc pages */
+    .doc__container {
+        @apply mx-auto w-full flex-grow h-full;
+    }
+
+    .nav {
+        @apply flex justify-between min-h-28 items-center p-5 px-10 bg-white;
+    }
+
+    .nav .our__logo {
+        @apply text-2xl flex items-center gap-6
+    }
+
+    .doc__container.splited {
+        @apply flex;
+    }
+
+    .doc__container .left_pane {
+        @apply bg-gray-200 w-1/3 min-w-[400px] flex flex-col resize h-full border-r border-gray-300
+    }
+    .doc__container .right_pane {
+        @apply bg-gray-200 w-full min-w-[200px] flex flex-col;
+    }
+
+    .doc__container .right_pane .document {
+        @apply h-full;
+    }
+    .validation__form {
+        @apply bg-white flex flex-col h-full flex-grow;
+    }
+
+    .validation__form .validation__title {
+        @apply flex items-center px-8 border-b py-4 font-bold text-gray-500;
+    }
+    
+    .validation__form form {
+        @apply flex flex-col flex-grow h-full
+    }
+
+    .validation__form form .inputs {
+        @apply p-8 border flex-grow
+    }
+
+    .scrollable_content {
+        @apply relative max-h-full overflow-y-auto border;
+    }
+    .scrollable_content .content {
+        @apply absolute inset-0 p-8;
+    }
+
+    .webviewer {
+        @apply h-full;
+    }
+
+    .input__form {
+        @apply flex flex-col my-2;
+    }
+    .input__form label {
+        @apply text-sm mb-1
+    }
+    .input__form input.form_controller {
+        @apply px-2.5 py-1 text-sm border focus:outline focus:outline-2 focus:outline-offset-0 bg-[#ffffff] text-[#020202] focus:outline-blue-300 border-[#cccccc]
+    }
+
+    fieldset {
+        @apply border-t py-2 pl-1;
+    }
+
+    fieldset legend {
+        @apply font-semibold text-sm mb-1 pr-2 pl-0;
+    }
+
+    .document__page .operations {
+        @apply border-b py-1 px-2 bg-white w-full
+    }
+    .validation__buttons {
+        @apply flex items-center divide-x divide-slate-200 gap-2
+    }
+    .validation__buttons  > div {
+        @apply px-2
+    }
+
+    .custom__button {
+        @apply inline-block rounded border-2 px-6 pb-2 pt-2.5 text-xs font-medium uppercase leading-normal transition duration-150 ease-in-out focus:outline-none focus:ring-0;
+    }
+    .custom__button.outline-danger {
+        @apply border-rose-500 text-rose-500 hover:border-rose-600 hover:bg-rose-400 hover:bg-opacity-10 hover:text-rose-600
+        focus:border-rose-700 focus:text-rose-700
+        active:border-rose-800 active:text-rose-800
+        dark:border-rose-300 dark:text-rose-300 dark:hover:hover:bg-rose-300;
+    }
+    
+    .custom__primary_btn {
+        @apply inline-block rounded bg-sky-500 text-neutral-50 hover:bg-sky-600 hover:shadow-[0_8px_9px_-4px_rgba(51,45,45,0.2),0_4px_18px_0_rgba(51,45,45,0.1)] focus:bg-sky-800 focus:shadow-[0_8px_9px_-4px_rgba(51,45,45,0.2),0_4px_18px_0_rgba(51,45,45,0.1)] active:bg-sky-700 active:shadow-[0_8px_9px_-4px_rgba(51,45,45,0.2),0_4px_18px_0_rgba(51,45,45,0.1)] px-6 pb-2 pt-2.5 text-xs font-medium uppercase leading-normal transition duration-150 ease-in-out focus:outline-none focus:ring-0
+    }
+    
+    .custom__secondary_btn {
+        @apply inline-block rounded bg-gray-500 text-neutral-50 hover:bg-gray-600 hover:shadow-[0_8px_9px_-4px_rgba(51,45,45,0.2),0_4px_18px_0_rgba(51,45,45,0.1)] focus:bg-gray-800 focus:shadow-[0_8px_9px_-4px_rgba(51,45,45,0.2),0_4px_18px_0_rgba(51,45,45,0.1)] active:bg-gray-700 active:shadow-[0_8px_9px_-4px_rgba(51,45,45,0.2),0_4px_18px_0_rgba(51,45,45,0.1)] px-6 pb-2 pt-2.5 text-xs font-medium uppercase leading-normal transition duration-150 ease-in-out focus:outline-none focus:ring-0
+    }
+
+    .custom__header .MuiDataGrid-columnHeaders {
+        --DataGrid-containerBackground: #f5f5f5;
+        @apply text-slate-600
+    }
+
+    .reject__form-group label {
+        @apply font-semibold
+    }
+}
+
+@layer utilities {
+    .custom__scroll::-webkit-scrollbar {
+        width: 8px;
+        opacity: 0.5; /* Reduced opacity */
+    }
+    
+    .custom__scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .custom__scroll::-webkit-scrollbar-thumb {
+        background: rgba(100, 100, 100, 0.1); /* Default thumb opacity */
+        border-radius: 6px;
+        transition: background 0.5s ease, opacity 0.5s ease;
+    }
+
+    /* When hovering over the container, increase scrollbar opacity */
+    .custom__scroll:hover::-webkit-scrollbar-thumb {
+        background: rgba(100, 100, 100, 0.5); /* Increase opacity */
+    }
+    /* Hovering over the content */
+    .custom__scroll::-webkit-scrollbar:hover {
+      opacity: 1; /* Increase scrollbar opacity on hover */
+    }
+    /* Hovering over the scrollbar itself */
+    .custom__scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 100, 100, 1); /* Full opacity when hovered */
+    }
+}

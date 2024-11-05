@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Invoice>
+    <Supplier>Anonymous PDF</Supplier>
+    <IRNnumber>00056482</IRNnumber>
+    <VATnumber>BL0002654</VATnumber>
+    <Client>CV Homan-Monsma</Client>
+
+    <InvoiceDetails>
+        <InvoiceNumber>978553</InvoiceNumber>
+        <InvoiceDate>2024-08-16</InvoiceDate>
+    </InvoiceDetails>
+
+    <AmountDetails>
+        <NetAmount>1.231,21</NetAmount>
+        <VatAmount>258,55</VatAmount>
+        <DueDate>Teny tsy fantatra no eto 30 dagen netto</DueDate>
+        <TotalAmount>1.489,76</TotalAmount>
+    </AmountDetails>
+</Invoice>
