@@ -28,7 +28,7 @@ const MyDocument = React.memo(({ fileUrl, searchText }) => {
     const viewer = useRef(null);
     const webViewerInstance = useRef(null);  // Ref to store the WebViewer instance
 
-    const licenseKey = 'RYB6p8C2W4Y0Ofth7oIk' // process.env.PDF_VIEWER_LICENCE_KEY;
+    const licenseKey = 'zrdUB8ao0L3PgYK8cyxL' // process.env.PDF_VIEWER_LICENCE_KEY;
 
     // if using a class, equivalent of componentDidMount
     useEffect(() => {
