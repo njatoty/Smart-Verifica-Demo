@@ -31,7 +31,7 @@ const UserProfileDialog = ({ name, email, avatarUrl, open, handleClose }) => {
     );
 };
 
-const UserProfilePopover = ({ name, email, avatarUrl, mousePosition, open, handleClose }) => {
+const UserProfilePopover = ({ name, email, role, avatarUrl, mousePosition, open, handleClose }) => {
     const id = open ? 'user-profile-popover' : undefined;
 
     return (
@@ -54,6 +54,7 @@ const UserProfilePopover = ({ name, email, avatarUrl, mousePosition, open, handl
                 <Box ml={2}>
                     <Typography variant="h6">{name}</Typography>
                     <Link variant="body2" href={`mailto:${email}`}>{email}</Link>
+                    <p className='font-bold text-sm'>Type: <span className='text-blue-optimum'>{role}</span></p>
                 </Box>
             </Box>
         </Popover>
@@ -74,7 +75,7 @@ export const UserProfile = ({ name, email, avatarUrl }) => {
     );
 };
 
-export const UserCell = ({ name, email, avatarUrl }) => {
+export const UserCell = ({ name, email, avatarUrl, role }) => {
 
     const [mousePosition, setMousePosition] = useState(null);
     const [open, setOpen] = useState(false);
@@ -101,13 +102,13 @@ export const UserCell = ({ name, email, avatarUrl }) => {
                 sx={{ cursor: 'pointer' }}
                 className='underline capitalize flex items-center gap-2'
             >
-                <AccountCircle className='text-blue-500' />
+                <Avatar src={avatarUrl} sx={{ height: 26, width: 26 }} />
                 {name}
-
                 {/* Dialog with user profile details */}
                 <UserProfilePopover
                     name={name}
                     email={email}
+                    role={role}
                     avatarUrl={avatarUrl}
                     open={open}
                     handleClose={handleMouseLeave}

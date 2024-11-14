@@ -9,6 +9,7 @@ const resources = {
             'description': "This is a simple description",
             "prevalidation": "Pre-validation",
             'retourne': "Returned",
+            'rejected': "Rejected",
             'tous-les-doc': "All documents",
             'deposez-les-fichiers': "Submit file(s)...",
             'glissez-et-deposez' : "Drag and drop one or more files here or click to select",
@@ -86,7 +87,20 @@ const resources = {
             "credit-note-val": "Credit Note",
             "reject-reason": "Reason",
             "reject-message": "Please provide the reason for rejecting this document.",
-            "all-records": "All"
+            "all-records": "All",
+            "or": "or",
+            "signin-with-google": "Sign In with Google",
+            "selecting-next-document": "Selecting the next document...",
+            "document-not-found": "Document not found!",
+            "product-code": "Product Code",
+            "description-col": "Description",
+            "unit-price": "Unit Price",
+            "quantity": "Quantity",
+            "amount": "Amount",
+            "rejected-dialog-title": "Document rejected in V1",
+            "rejected-dialog-content": "The current document has been rejected in V1. Please, kindly review and verify the details.",
+            "rejected-dialog-dismiss": "Dismiss",
+            "temporarily-rejected": "Temporarily rejected"
         }
     },
     fr: {
@@ -96,6 +110,7 @@ const resources = {
             'description': "Ceci est une simple description",
             "prevalidation": "Prévalidation",
             'retourne': "Retourné",
+            'rejected': "Rejeté",
             'tous-les-doc': "Tous les documents",
             'deposez-les-fichiers': "Déposez le(s) fichier(s)...",
             'glissez-et-deposez' : "Glissez et déposez un ou plusieurs fichiers ici ou cliquez pour sélectionner",
@@ -172,7 +187,20 @@ const resources = {
             "credit-note-val": "Note de crédit",
             "reject-reason": "Raison",
             "reject-message": "Veuillez indiquer la raison du rejet de ce document.",
-            "all-records": "Tous"
+            "all-records": "Tous",
+            "or": "ou",
+            "signin-with-google": "Se connecter avec Google",
+            "selecting-next-document": "Sélection du document suivant...",
+            "document-not-found": "Document non trouvé!",
+            "product-code": "Code du produit",
+            "description-col": "Déscription",
+            "unit-price": "Prix Unitaire",
+            "quantity": "Quantité",
+            "amount": "Montant",
+            "rejected-dialog-title": "Document rejeté en V1",
+            "rejected-dialog-content": "Le document actuel a été rejeté en V1. Veuillez, s'il vous plaît, examiner et vérifier les détails.",
+            "rejected-dialog-dismiss": "Fermer",
+            "temporarily-rejected": "Rejeté temporairement"
         }
     }
 }

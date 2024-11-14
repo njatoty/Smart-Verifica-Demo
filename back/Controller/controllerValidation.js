@@ -1,9 +1,9 @@
-const Validation = require("../Models/Validation")
 const Document = require("../Models/File")
 const { Builder } = require('xml2js');
 const path = require('path');
 const fs = require('fs');
 const xml2js = require('xml2js');
+const axios = require('axios')
 
 // method to get validation by state
 exports.getValidations = async (req, res) => {
@@ -51,9 +51,10 @@ exports.getValidationByDocumentIdAndValidation = async (req, res) => {
         .populate('validatedBy.v2')
         .populate('returnedBy');
 
+        
         if (document.dataXml === '{}') {
             try {
-                const xmlJSON = await convertXmlToJson('./uploads/' + document.xml);
+                const xmlJSON = await convertXmlToJson(document.xmlLink ?? './uploads/' + document.xmlName);
                 document = await Document.findByIdAndUpdate(documentId, {
                     dataXml: JSON.stringify(xmlJSON)
                 }, { new: true })
@@ -63,9 +64,15 @@ exports.getValidationByDocumentIdAndValidation = async (req, res) => {
                 .populate('returnedBy');
 
             } catch (error) {
+                console.log(error)
                 console.log('Error: cannot add json')
             }
         }
+
+        // get pdf base64
+        // const pdfBase64 = await convertPDFToBase64(document.pdfLink);
+
+        // document.pdfLink = "data:application/pdf;base64," + pdfBase64;
 
         res.json(document);
 
@@ -262,22 +269,21 @@ exports.rejectDocument = async (req, res) => {
     try {
 
         const { documentId } = req.params;
-        const { reason = "" } = req.body;
+        const { reason = "", json_data, validation } = req.body;
 
         const updatedDocument = await Document.findByIdAndUpdate(
             documentId,
             {
                 $set: {
-                    "validation.v1": false,
-                    "validation.v2": false,
-                    status: 'rejected',
+                    status: validation === 'v1' ? 'temporarily-rejected' : 'rejected',
                     returnedBy: req.user._id,
                     lockedBy: null,
                     isLocked: false,
-                    "validatedBy.v1": null,
-                    "validatedBy.v2": null,
-                    reason: reason,
-
+                    [`validation.${validation}`]: true,
+                    [`validatedBy.${validation}`]: req.user._id,
+                    temporarilyReason: validation === 'v1' ? reason : '',
+                    reason: validation !== 'v1' ? reason : '',
+                    ...(json_data) && { dataXml: json_data }
                 },
             },
             { new: true } // Returns the updated document
@@ -342,23 +348,32 @@ exports.createXMLFile = async (req, res) => {
 
 
 // Function to read and convert XML to JSON using Promises
-function convertXmlToJson(filePath) {
+async function convertXmlToJson(fileUrl) {
+    
+    // Fetch the XML content from the URL
+    const response = await axios.get(fileUrl, { responseType: 'text' });
+    const data = response.data;
+
     return new Promise((resolve, reject) => {
-        // Read the XML file
-        fs.readFile(filePath, 'utf8', (err, data) => {
-
+        // Parse the XML data
+        xml2js.parseString(data, { explicitArray: false }, (err, result) => {
             if (err) {
-                return reject('Error reading XML file: ' + err);
+                return reject('Error parsing XML to JSON: ' + err);
             }
-
-            // Parse the XML data
-            xml2js.parseString(data, { explicitArray: false }, (err, result) => {
-                if (err) {
-                    return reject('Error parsing XML to JSON: ' + err);
-                }
-                // Resolve the parsed JSON result
-                resolve(result);
-            });
+            // Resolve the parsed JSON result
+            resolve(result);
         });
     });
+}
+
+// Function to read and convert XML to JSON using Promises
+async function convertPDFToBase64(fileUrl) {
+    
+    // Fetch the XML content from the URL
+    const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+
+    // Convert the PDF data to Base64
+    const base64String = Buffer.from(response.data, 'binary').toString('base64');
+
+    return base64String;
 }

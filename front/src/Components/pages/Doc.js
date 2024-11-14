@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Input from "../others/Input";
-import MyDocument from "../others/MyDocument";
+// import PDFViewer from "../others/PDFViewer";
 import { useNavigate, useParams } from "react-router-dom";
 import { changeObjectValue, GenerateXMLFromResponse } from '../../utils/utils';
 import service from '../services/fileService'
 import ValidationSteps from "../others/ValidationSteps";
-import { Alert, Button, Skeleton, Snackbar } from '@mui/material'
-import { SwipeLeftAlt, PublishedWithChanges, Save, Cancel, ArrowLeftSharp, RemoveCircle } from '@mui/icons-material'
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Skeleton, Snackbar, Typography } from '@mui/material'
+import { SwipeLeftAlt, PublishedWithChanges, Save, Cancel, ArrowLeftSharp, RemoveCircle, PictureAsPdf } from '@mui/icons-material'
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import Header from "../others/Header";
 import { useTranslation } from "react-i18next";
 import fileService from "../services/fileService";
@@ -14,6 +15,8 @@ import LoadingModal from "../others/LoadingModal";
 import CommentBox from "../others/CommentBox";
 import RejectModal from "../others/RejectModal";
 import ComboBox from "../others/ComboBox";
+import LineItemTable from "../others/LineItemTable";
+const PDFViewer = React.lazy(() => import('../others/WorkerPDFViewer'));
 
 const defaultSnackAlert = {
   open: false,
@@ -38,10 +41,12 @@ const Doc = () => {
   const [invoiceData, setInvoiceData] = useState({});
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [openPopup, setOpenPopup] = useState(false);
   const [snackAlert, setSnackAlert] = useState(defaultSnackAlert);
   const [dialogComment, setDialogComment] = useState(defaultSnackAlert);
   const [loadingState, setLoadingState] = useState(defaultLoadingState);
   const [rejectState, setRejectState] = useState(defaultLoadingState);
+  const [pdfUrl, setPdfUrl] = useState('');
   // get active user infos from localstorage
   const _User = JSON.parse(localStorage.getItem('user'));
 
@@ -49,13 +54,33 @@ const Doc = () => {
     i18n.changeLanguage(lng);
   };
 
+  
+  // Navigate to url according to the document status
+  const redirect = useCallback(() => {
+    if (doc.status === 'returned')
+      return navigate('/returned')
+    else if (validation === 'v1')
+      return navigate('/prevalidation');
+    else if (validation === 'v2')
+      return navigate('/validation')
+  }, [doc, validation, navigate]);
 
-  const v = ['v1', 'v2'].includes(validation);
-
+  // method that is used to take next document according to validation stage (v1, v2)
+  const goToNextDocument = useCallback(async () => {
+    // instead of going back, go to next document
+    const nextDoc = await fileService.goToNextDocument(validation);
+    if (nextDoc) { // nextdoc found
+      // open the new document
+      navigate(`/document/${validation}/${nextDoc._id}`);
+    } else {
+      // go to list according to the validation state
+      redirect();
+    }
+  }, [navigate, redirect, validation]);
 
   useEffect(() => {
 
-    if (!v) navigate('/');
+    if (!['v1', 'v2'].includes(validation)) navigate('/');
 
 
     // check validation
@@ -64,11 +89,28 @@ const Doc = () => {
 
       const docData = await res;
 
-      if (!docData) return;
+      if (!docData) {
+        // IF DOCUMENT IS NOT FOUND GO BACK
+        setSnackAlert({
+          open: true,
+          type: 'warning',
+          message: t('document-not-found')
+        });
+        setTimeout(() => {
+          navigate('/');
+        }, 5000);
+        return;
+      };
       // handle if is locked
       if (docData.isLocked && docData.lockedBy?._id !== _User._id) {
         return navigate(-1)
       }
+      
+      if (["validated", "rejected"].includes(docData.status)) {
+        await service.unlockFile(id);
+        return redirect();
+      }
+      
       // lock document
       await fileService.lockFile(id);
 
@@ -77,22 +119,40 @@ const Doc = () => {
         return navigate('/prevalidation');
       }
 
+      /*
       // if validation is v2, get data from v1
-      // let validationSelection = validation === 'v2' ? 'v1' : validation;
-      // const record = docData.versions.find(v => v.versionNumber === validationSelection);
+      let validationSelection = validation === 'v2' ? 'v1' : validation;
+      const record = docData.versions.find(v => v.versionNumber === validationSelection);
 
-      // if (record) {
-      //   setInvoiceData(record.dataJson)
-      // } else {
+      if (record) {
+        setInvoiceData(record.dataJson)
+      } else {
         const jsonData = JSON.parse(String.raw`${docData.dataXml}`);
         setInvoiceData(jsonData);
-      // }
+      }
+
+      */
+      
+      const jsonData = JSON.parse(String.raw`${docData.dataXml}`);
+      setInvoiceData(jsonData);
 
       setDoc(docData);
       setLoading(false);
+      setPdfUrl(docData.pdfLink);
+
+      // open popup if document has been rejected temporarily
+      if (docData.status === 'temporarily-rejected') {
+        setOpenPopup(true);
+      }
 
     });
-  }, [id, validation]);
+    
+    // unlock document
+    return async () => {
+      await fileService.unlockFile(id);
+    }
+
+  }, [id, validation, navigate, t]);
   
   const handleBeforeUnload = useCallback(() => {
     fileService.unlockFile(id);
@@ -106,17 +166,6 @@ const Doc = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [handleBeforeUnload]);
-
-  // Navigate to url according to the document status
-  const redirect = useCallback(() => {
-    // navigate to back url
-    if (doc.status === 'returned')
-      return navigate('/returned')
-    else if (validation === 'v1')
-      return navigate('/prevalidation');
-    else if (validation === 'v2')
-      return navigate('/validation')
-  }, [doc, validation, navigate]);
 
   // BUTTONS EVENTS
   const handleBackButton = async () => {
@@ -138,6 +187,16 @@ const Doc = () => {
         const fullKey = parentKey ? `${parentKey}.${key}` : key;
 
         if (typeof data[key] === 'object') {
+
+          // render line item
+          if (key === 'LineItem') {
+            return (<LineItemTable
+              data={data[key].length ? data[key] : [data[key]]}
+              id={fullKey}
+              onRowsUpdate={handleUpdateJSON}
+            />)
+          }
+
           return (
             <fieldset key={fullKey}>
               <legend>{key}</legend>
@@ -261,8 +320,15 @@ const Doc = () => {
           message: 'Validation success!'
         });
 
-        // go back
-        navigate(-1);
+        setLoadingState({
+          open: true,
+          message: t('selecting-next-document')
+        });
+
+        // instead of going back, go to next document
+        await goToNextDocument();
+        
+        setLoadingState(defaultLoadingState);
       }
 
     }).catch(err => {
@@ -340,24 +406,25 @@ const Doc = () => {
       open: true,
       message: t('rejecting-document')
     });
+
     // do logic
-    // const res = await fileService.rejectDocument(id, { reason });
-    // if (res.ok) {
-    // } else {
-    //   setSnackAlert({
-    //     open: true,
-    //     type: 'error',
-    //     message: t('error')
-    //   })
-    //   // reopen
-    //   setRejectState({
-    //     open: true
-    //   });
-    // }
-    setTimeout(() => {
-      setLoadingState(defaultLoadingState);
+    const res = await fileService.rejectDocument(id, { reason, validation });
+    if (res.ok) {
+      // instead of going back, go to next document
+      await goToNextDocument();
       
-    }, 5000);
+    } else {
+      setSnackAlert({
+        open: true,
+        type: 'error',
+        message: t('error')
+      })
+      // reopen
+      setRejectState({
+        open: true
+      });
+    }
+    setLoadingState(defaultLoadingState);
   }
 
 
@@ -423,17 +490,38 @@ const Doc = () => {
                     <span className="!text-slate-600">{t('validate-document')}</span>
                   </Button>
                 </div>
+                
+                <div hidden>
+                  <Button type="button" size="small" startIcon={<PublishedWithChanges className="text-emerald-600" />}
+                    onClick={() => {
+                      if (id === '672dc298482dc4a73cf9c958')
+                        navigate(`/document/v2/672dc297482dc4a73cf9c955`)
+                      else 
+                        navigate(`/document/v2/672dc298482dc4a73cf9c958`)
+                    }}
+                    disabled={Object.entries(invoiceData).length === 0}
+                  >
+                    <span className="!text-slate-600">SWITCH</span>
+                  </Button>
+                </div>
+                {
+                  doc && 
+                  <div className="ml-auto flex items-center gap-2 text-sm">
+                    <PictureAsPdf className="text-red-400" fontSize='medium' />
+                    <span className="text-slate-700">{doc.pdfName}</span>
+                  </div>
+                }
               </>
           }
         </div>
       </div>
-      <div className="doc__container splited">
-        <div className="left_pane">
-          <div className="">{searchText}</div>
+
+      <PanelGroup autoSaveId='doc_panel' direction="horizontal" className="doc__container splited">
+        <Panel className="left_pane" defaultSize={480}>
           <div className="validation__form">
             <div className="validation__title">
               {/* <h3>Validation stage: {validationStage}</h3> */}
-              <ValidationSteps stage={validationStage} />
+              <ValidationSteps stage={validationStage} status={doc?.status} onOpenInfos={setOpenPopup} />
             </div>
             {/* Form */}
             <form onSubmit={(e) => e.preventDefault()}>
@@ -479,12 +567,15 @@ const Doc = () => {
             </form>
             {/* End form */}
           </div>
-        </div>
-        <div className="right_pane">
+        </Panel >
+        <PanelResizeHandle />
+        <Panel className="right_pane">
           <div className="document">
-            {doc && <MyDocument fileUrl={`${process.env.REACT_APP_API_URL}/${doc.name}`} searchText={searchText} />}
+            <Suspense fallback={<>...</>}>
+              <PDFViewer fileUrl={pdfUrl} searchText={searchText} />
+            </Suspense>
           </div>
-        </div>
+        </Panel>
         {/* Snack bar */}
         <Snackbar open={snackAlert.open} autoHideDuration={6000}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
@@ -506,7 +597,30 @@ const Doc = () => {
 
         <RejectModal open={rejectState.open} onSubmit={handleRejectDocument} onClose={() => setRejectState(defaultLoadingState)} />
 
-      </div>
+        {/* POPUP to show if the document status is temporarily-rejected */}
+
+        <Dialog open={openPopup} onClose={() => setOpenPopup(false)}>
+          <DialogTitle>
+            <Alert severity="warning">{t('rejected-dialog-title')}</Alert>
+          </DialogTitle>
+
+          <DialogContent>
+            <Typography variant="body1" sx={{ mt: 2 }}>
+              {t('rejected-dialog-content')}
+            </Typography>
+            <Typography variant="body1" sx={{ mt: 2 }}>
+              <span className="font-semibold">{t('reject-reason')}</span> : { doc?.temporarilyReason }
+            </Typography>
+          </DialogContent>
+
+          <DialogActions>
+            <Button onClick={() => setOpenPopup(false)} color="error">
+              {t('rejected-dialog-dismiss')}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+      </PanelGroup>
       
       <div className="h-10 bg-gray-200 border-t border-t-300"></div>
     </main>

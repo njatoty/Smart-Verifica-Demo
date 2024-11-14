@@ -123,3 +123,18 @@ export const showWorkflowStatus = (document) => {
     // finished
     // canceled
 }
+
+
+export const fetchVerticesOnJSOn = (data) => {
+    let vertices = [];
+    data.forEach(keyValue => {
+        var vert = keyValue.pageAnchor.pageRefs[0].boundingPoly;
+        if (vert){
+            vertices.push({
+                page: keyValue.pageAnchor.pageRefs[0].page,
+                vertices: vert.normalizedVertices
+            })
+        }
+    });
+    return vertices;
+}

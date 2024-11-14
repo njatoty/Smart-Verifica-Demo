@@ -23,13 +23,28 @@ const UserSchema = new mongoose.Schema({
         default: 'agent V1'
     },
     resetToken: {
-      type: String,
-      default: null,
+        type: String,
+        default: null,
     },
     resetTokenExpiration: {
-      type: Date,
-      default: null,
+        type: Date,
+        default: null,
     },
-}, { timestamps: true });
+}, {
+    timestamps: true, 
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+
+
+UserSchema.virtual('displayName').get(function() {
+    return this.name;
+});
+
+
+// UserSchema.virtual('uid').get(function() {
+//     return this.createdAt ? this.createdAt.getTime() : null;
+// });
 
 module.exports = mongoose.model('User', UserSchema);
