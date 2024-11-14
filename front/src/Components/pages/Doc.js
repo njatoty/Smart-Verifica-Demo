@@ -569,7 +569,7 @@ const Doc = () => {
           </div>
         </Panel >
         <PanelResizeHandle />
-        <Panel className="right_pane">
+        <Panel className="right_pane" defaultSize={700}>
           <div className="document">
             <Suspense fallback={<>...</>}>
               <PDFViewer fileUrl={pdfUrl} searchText={searchText} />
