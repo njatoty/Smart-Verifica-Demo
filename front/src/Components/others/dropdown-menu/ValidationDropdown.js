@@ -2,14 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
 import {
     incrementPrevalidation,
-    decrementPrevalidation,
     incrementReturned,
-    decrementReturned,
     incrementValidationV2,
-    decrementValidationV2,
     incrementValidated,
-    decrementValidated,
     resetCounts,
+    incrementRejected,
 } from './../../redux/store';
 import { useTranslation } from 'react-i18next';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -17,13 +14,13 @@ import fileService from '../../services/fileService';
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import useSocketEvent from '../../../hooks/useSocketEvent';
 
-const ValidationDropdown = (user) => {
+const ValidationDropdown = ({user}) => {
     const { t } = useTranslation();
     const dispatch = useDispatch();
     const location = useLocation();
     const {
         prevalidationCount,
-        returnedCount,
+        rejectedCount,
         validationV2Count,
         validatedCount
     } = useSelector((state) => state.documents);
@@ -41,6 +38,7 @@ const ValidationDropdown = (user) => {
             dispatch(incrementReturned(counts.returnedCount[0]?.count || 0));
             dispatch(incrementValidationV2(counts.validationV2Count[0]?.count || 0));
             dispatch(incrementValidated(counts.validatedCount[0]?.count || 0));
+            dispatch(incrementRejected(counts.rejectedCount[0]?.count || 0));
         })
     }
 
@@ -56,15 +54,13 @@ const ValidationDropdown = (user) => {
 
 
     useEffect(() => {
-        
         updateCounts();
-        
     }, [])
 
 
     useEffect(() => {
         // Array of paths that should open the validation menu
-        const validationPaths = ['/validation', '/prevalidation', '/returned', '/validated'];
+        const validationPaths = ['/validation', '/prevalidation', '/returned', '/validated', '/rejected'];
         // Open the validation menu if the current path is in validationPaths
         setIsDropDownOpen(validationPaths.includes(location.pathname));
 
@@ -86,22 +82,22 @@ const ValidationDropdown = (user) => {
             {
                 isDropDownOpen && (
                     <ul className="ml-2 pl-4 py-1 space-y-1 border-l-2">
-                        {(user.utilisateur.role === "admin" || user.utilisateur.role === "agent V1") && (<li>
+                        {(user?.role === "admin" || user?.role === "agent V1") && (<li>
                             <NavLink to="/prevalidation" className='menu-item' title={`${t('prevalidation')} ${prevalidationCount}`}>
                                 {t('prevalidation')} v1 {prevalidationCount > 0 && <span>{sc(prevalidationCount)}</span>}
                             </NavLink>
                         </li>)}
-                        {(user.utilisateur.role === "admin" || user.utilisateur.role === "agent V2") && (<li>
+                        {(user?.role === "admin" || user?.role === "agent V2") && (<li>
                             <NavLink to="/validation" className='menu-item' title={`Validation ${validationV2Count}`}>
                                 Validation v2 {validationV2Count > 0 && <span>{sc(validationV2Count)}</span>}
                             </NavLink>
                         </li>)}
-                        {/* <li>
-                            <NavLink to="/returned" className='menu-item' title={`${t('retourne')} ${returnedCount}`}>
-                                {t('retourne')} {returnedCount > 0 && <span>{sc(returnedCount)}</span>}
+                        <li>
+                            <NavLink to="/rejected" className='menu-item' title={`${t('rejected')} ${rejectedCount}`}>
+                                {t('rejected')} {rejectedCount > 0 && <span>{sc(rejectedCount)}</span>}
                             </NavLink>
-                        </li> */}
-                        {(user.utilisateur.role === "admin" ) && (<li>
+                        </li>
+                        {(user?.role === "admin" ) && (<li>
                             <NavLink to="/validated" className='menu-item' title={`${t('validated-menu')} ${validatedCount}`}>
                                 {t('validated-menu')} {validatedCount > 0 && <span>{sc(validatedCount)}</span>}
                             </NavLink>

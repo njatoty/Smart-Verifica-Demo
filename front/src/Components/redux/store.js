@@ -6,6 +6,7 @@ const documentSlice = createSlice({
     initialState: {
         prevalidationCount: 0,
         returnedCount: 0,
+        rejectedCount: 0,
         validationV2Count: 0,
         validatedCount: 0
     },
@@ -30,6 +31,16 @@ const documentSlice = createSlice({
         decrementReturned: (state) => {
             if (state.returnedCount > 0) state.returnedCount -= 1;
         },
+        affectRejected: (state, action) => {
+            state.rejectedCount = action.payload;
+        },
+        incrementRejected: (state, action) => {
+            const incrementValue = action.payload ?? 1;
+            state.rejectedCount += incrementValue;
+        },
+        decrementRejected: (state) => {
+            if (state.rejectedCount > 0) state.rejectedCount -= 1;
+        },
         affectValidation2: (state, action) => {
             state.validationV2Count = action.payload;
         },
@@ -53,6 +64,7 @@ const documentSlice = createSlice({
         resetCounts: (state) => {
             state.prevalidationCount = 0;
             state.returnedCount = 0;
+            state.rejectedCount = 0;
             state.validationV2Count = 0;
             state.validatedCount = 0;
         },
@@ -64,6 +76,8 @@ export const {
     decrementPrevalidation,
     incrementReturned,
     decrementReturned,
+    incrementRejected,
+    decrementRejected,
     incrementValidationV2,
     decrementValidationV2,
     incrementValidated,
@@ -71,6 +85,7 @@ export const {
     resetCounts,
     affectPrevalidation,
     affectReturned,
+    affectRejected,
     affectValidated,
     affectValidation2
 } = documentSlice.actions;

@@ -72,7 +72,7 @@ const ComboBox = React.memo(({label = '', id, value = '', defaultValue = '', onI
                 />
                 <button 
                     type="button" 
-                    className="border rounded-l focus:outline-none"
+                    className="border focus:outline-none"
                     onClick={toggleOptions}
                 >
                     <ArrowDropDown />

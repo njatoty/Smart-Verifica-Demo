@@ -25,7 +25,9 @@ const Input = React.memo(({label = '', id, value = '', defaultValue = '', onInpu
     
     return (
         <div className='input__form grid grid-cols-3 place-items-start items-center'>
-            <label className='col-span-1' htmlFor={id}>{makeReadable(label)}:</label>
+            {
+                label && <label className='col-span-1' htmlFor={id}>{makeReadable(label)}:</label>
+            }
             <input
                 ref={ref}
                 id={id}

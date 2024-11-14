@@ -12,19 +12,31 @@ const versionSchema = new mongoose.Schema({
 }, { _id: false }); // Prevent creating an _id for this sub-document
 
 const fileSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true
-    },
     isLocked: {
         type: Boolean,
         default: false
     },
-    xml: {
-        type: String, // xml file name
+    pdfName: {
+        type: String, // pdf link
+        default: ''
+    },
+    pdfLink: {
+        type: String, // pdf link
+        default: ''
+    },
+    xmlName: {
+        type: String, // xml link
+        default: ''
+    },
+    xmlLink: {
+        type: String, // xml link
         default: ''
     },
     dataXml: {
+        type: String, // or Buffer if you expect binary data,
+        default: '{}'
+    },
+    verticesLink: {
         type: String, // or Buffer if you expect binary data,
         default: '{}'
     },
@@ -45,7 +57,7 @@ const fileSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['progress', 'returned', 'validated', 'rejected'],
+        enum: ['progress', 'returned', 'validated', 'temporarily-rejected', 'rejected'],
         default: 'progress'
     },
     // Additional field for user
@@ -68,6 +80,10 @@ const fileSchema = new mongoose.Schema({
         ref: 'User'
     },
     comment: {
+        type: String,
+        default: ''
+    },
+    temporarilyReason: { // need to be filled in during rejection
         type: String,
         default: ''
     },
@@ -101,6 +117,15 @@ fileSchema.virtual('workflowStatus').get(function() {
 
 fileSchema.virtual('documentid').get(function() {
     return this.createdAt ? this.createdAt.getTime() : null;
+});
+
+/* virtual field to avoid code errors in frontend */
+fileSchema.virtual('name').get(function() {
+    return this.pdfName;
+});
+
+fileSchema.virtual('xml').get(function() {
+    return this.xmlName;
 });
 
 module.exports = mongoose.model('File', fileSchema)
