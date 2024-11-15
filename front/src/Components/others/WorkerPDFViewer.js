@@ -81,7 +81,7 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
 
         const context = canvas.getContext('2d');
         // Use requestAnimationFrame to ensure smooth rendering
-        requestAnimationFrame(async () => {
+        // requestAnimationFrame(async () => {
             await page.render({
                 canvasContext: context,
                 viewport,
@@ -98,7 +98,7 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
 
             // Optionally render other graphics (e.g., vertices) if necessary
             drawVertices(context, viewport, canvas, pdfViewerRef, rotation);
-        });
+        // });
     }, [pdf, pdfViewerRef]);
 
 
