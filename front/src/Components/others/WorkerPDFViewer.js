@@ -43,70 +43,87 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
 
 
     }, [fileUrl]);
-
-
-    useEffect(() => {
-        if (!pdf) return;
-        renderPage(currentPage, scale, rotation);
-    }, [pdf, scale, rotation, currentPage, verticesGroups]);
-    
-
-    const renderPage = useCallback(async (currentPage, scale, rotation) => {
-
+    const renderPage = async (currentPage, scale, rotation, vertices = []) => {
         const container = pdfViewerRef.current;
-        container.innerHTML = ''; // Clear previous content
-
+    
+        // Clear the container
+        if (container) container.innerHTML = '';
+    
+        // Create main canvas for PDF rendering
         const canvas = document.createElement('canvas');
+        const overlayCanvas = document.createElement('canvas'); // Overlay canvas for drawing vertices
         const textLayerDiv = document.createElement('div');
+    
         textLayerDiv.className = 'textLayer';
         textLayerDiv.style.position = 'absolute';
         textLayerDiv.style.top = 0;
         textLayerDiv.style.left = 0;
-        // textLayerDiv.style.pointerEvents = 'stroke';
         textLayerDiv.style.zIndex = 1;
         textLayerDiv.style.setProperty('--scale-factor', scale);
-
+    
         const pageDiv = document.createElement('div');
         pageDiv.style.position = 'relative';
         pageDiv.appendChild(canvas);
+        pageDiv.appendChild(overlayCanvas); // Add overlay canvas
         pageDiv.appendChild(textLayerDiv);
-
         container.appendChild(pageDiv);
-
+    
         const page = await pdf.getPage(currentPage);
         const viewport = page.getViewport({ scale, rotation });
-
-        canvas.height = viewport.height;
+    
+        // Set dimensions for both canvases
         canvas.width = viewport.width;
-
+        canvas.height = viewport.height;
+        overlayCanvas.width = viewport.width;
+        overlayCanvas.height = viewport.height;
+        overlayCanvas.style.position = 'absolute';
+        overlayCanvas.style.top = 0;
+        overlayCanvas.style.left = 0;
+        overlayCanvas.style.zIndex = 2; // Make sure it is above the main canvas
+    
+        // Render the PDF page
         const context = canvas.getContext('2d');
-        // Use requestAnimationFrame to ensure smooth rendering
-        requestAnimationFrame(async () => {
-            await page.render({
-                canvasContext: context,
-                viewport,
-            }).promise;
+        await page.render({ canvasContext: context, viewport }).promise;
+    
+        // Render the text layer
+        const textContent = await page.getTextContent();
+        renderTextLayer({ textContentSource: textContent, container: textLayerDiv, viewport });
+    
+        // Draw initial vertices on the overlay canvas
+        drawVertices(overlayCanvas.getContext('2d'), viewport, vertices, rotation);
+    };
 
-            // Render the text layer for text selection
-            const textContent = await page.getTextContent();
-            renderTextLayer({
-                textContentSource: textContent,
-                container: textLayerDiv,
-                viewport,
-                textDir: 'ltr',
-            });
+    // UseEffect to render PDF page initially
+    useEffect(() => {
+        if (!pdf) return;
+        renderPage(currentPage, scale, rotation, verticesGroups);
+    }, [pdf, scale, rotation, currentPage]);
 
-            // Optionally render other graphics (e.g., vertices) if necessary
-            drawVertices(context, viewport, canvas, pdfViewerRef, rotation);
-        });
-    }, [pdf, pdfViewerRef]);
+    // UseEffect to update vertices without re-rendering PDF
+    useEffect(() => {
+        updateVertices(verticesGroups);
+    }, [verticesGroups]);
+    
+
+    // Function to update only the vertices without re-rendering the page
+    const updateVertices = (vertices) => {
+        const container = pdfViewerRef.current;
+        const overlayCanvas = container?.querySelector('canvas:nth-of-type(2)'); // Get the overlay canvas
+        if (overlayCanvas) {
+            const context = overlayCanvas.getContext('2d');
+            drawVertices(context, { width: overlayCanvas.width, height: overlayCanvas.height }, vertices);
+        }
+    };
 
 
-    const drawVertices = (context, viewport, canvas, pdfViewerRef, rotationAngle = 0) => {
-        verticesGroups.forEach((vertice, groupIndex) => {
-            if (vertice.page === '0') {
+    const drawVertices = (context, viewport, vertices, rotationAngle = 0) => {
+
+        // Clear the entire canvas before drawing
+        context.clearRect(0, 0, viewport.width, viewport.height);
+        
+        vertices.forEach((vertice, groupIndex) => {
+            if (vertice.page == currentPage-1) {
                 context.strokeStyle = `#1E90FF`;
-                context.fillStyle = '#000'
                 context.lineWidth = 1;
 
                 // Save the current context state
@@ -149,6 +166,10 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
                     }
                 });
                 context.closePath();
+                
+                context.fillStyle = 'rgba(0, 0, 255, 0.2)';
+                context.fill();
+                
                 context.stroke();
 
                 // Restore the context to its original state
@@ -233,8 +254,8 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
     };
 
     return (
-        <div className="flex flex-col bg-slate-200 h-full">
-            <div className="top-bar flex justify-between items-center p-2 bg-white shadow-lg z-50 relative">
+        <div className="flex flex-col h-screen bg-slate-200">
+            <div className="relative z-50 flex items-center justify-between p-2 bg-white shadow-lg top-bar">
                 <div className="controls">
                     <button className={`${cursorOption === 'handtool' ? 'active' : ''}`} onClick={() => setCursorOption('handtool')}>
                         <BackHandOutlined />

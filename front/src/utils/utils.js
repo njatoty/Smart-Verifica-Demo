@@ -125,12 +125,13 @@ export const showWorkflowStatus = (document) => {
 }
 
 
-export const fetchVerticesOnJSOn = (data) => {
+export const getVerticesOnJSOn = (data) => {
     let vertices = [];
     data.forEach(keyValue => {
         var vert = keyValue.pageAnchor.pageRefs[0].boundingPoly;
         if (vert){
             vertices.push({
+                key: toCamelCase(keyValue.type),
                 page: keyValue.pageAnchor.pageRefs[0].page,
                 vertices: vert.normalizedVertices
             })
@@ -138,3 +139,14 @@ export const fetchVerticesOnJSOn = (data) => {
     });
     return vertices;
 }
+
+export const toCamelCase = (str = '') => str
+    .toLowerCase() // Convert the entire string to lowercase
+    .split('_') // Split the string by underscores
+    .map((word, index) => 
+    index === 0 
+        ? word.charAt(0).toUpperCase() + word.slice(1) // Capitalize the first letter of the first word
+        : word.charAt(0).toUpperCase() + word.slice(1) // Capitalize the first letter of other words
+    )
+    .join(''); // Join the words back together
+  

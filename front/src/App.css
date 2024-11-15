@@ -63,7 +63,7 @@
         @apply bg-gray-200 flex-shrink-0 w-[480px] flex flex-col resize h-full border-r border-gray-300
     }
     .doc__container .right_pane {
-        @apply bg-gray-200 w-full min-w-[200px] flex flex-col;
+        @apply bg-gray-200 w-full min-w-[600px] flex flex-col flex-grow;
     }
 
     .doc__container .right_pane .document {
@@ -122,6 +122,11 @@
     }
     .validation__buttons  > div {
         @apply px-2
+    }
+
+    .resizer {
+        @apply w-[8px] bg-transparent transition-all ease-in duration-200
+         hover:bg-slate-400/30 h-full cursor-col-resize absolute -right-1 z-50;
     }
 
     .custom__button {

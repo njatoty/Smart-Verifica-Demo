@@ -15,7 +15,7 @@ const ComboBox = React.memo(({label = '', id, value = '', defaultValue = '', onI
     }
 
     function handleFocus() {
-        onFocus && onFocus(val);
+        onFocus && onFocus(id, val);
         setTimeout(() => {
             ref.current?.focus();
         }, 10);
@@ -54,13 +54,13 @@ const ComboBox = React.memo(({label = '', id, value = '', defaultValue = '', onI
     }, [showOptions]);
 
     return (
-        <div className='input__form grid grid-cols-3 place-items-start items-center relative w-full' ref={dropdownRef}>
+        <div className='relative grid items-center w-full grid-cols-3 input__form place-items-start' ref={dropdownRef}>
             <label className='col-span-1' htmlFor={id}>{makeReadable(label)}:</label>
-            <div className="col-span-2 w-full flex items-stretch relative">
+            <div className="relative flex items-stretch w-full col-span-2">
                 <input
                     ref={ref}
                     id={id}
-                    className="form_controller w-full"
+                    className="w-full form_controller"
                     name={label}
                     {...props}
                     value={val}

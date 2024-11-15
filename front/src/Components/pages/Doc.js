@@ -2,7 +2,7 @@ import React, { Suspense, useCallback, useEffect, useMemo, useState } from "reac
 import Input from "../others/Input";
 // import PDFViewer from "../others/PDFViewer";
 import { useNavigate, useParams } from "react-router-dom";
-import { changeObjectValue, GenerateXMLFromResponse } from '../../utils/utils';
+import { changeObjectValue, GenerateXMLFromResponse, getVerticesOnJSOn } from '../../utils/utils';
 import service from '../services/fileService'
 import ValidationSteps from "../others/ValidationSteps";
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Skeleton, Snackbar, Typography } from '@mui/material'
@@ -47,6 +47,9 @@ const Doc = () => {
   const [loadingState, setLoadingState] = useState(defaultLoadingState);
   const [rejectState, setRejectState] = useState(defaultLoadingState);
   const [pdfUrl, setPdfUrl] = useState('');
+  const [vertices, setVertices] = useState([]);
+  const [verticeKey, setVerticeKey] = useState('');
+
   // get active user infos from localstorage
   const _User = JSON.parse(localStorage.getItem('user'));
 
@@ -119,20 +122,6 @@ const Doc = () => {
         return navigate('/prevalidation');
       }
 
-      /*
-      // if validation is v2, get data from v1
-      let validationSelection = validation === 'v2' ? 'v1' : validation;
-      const record = docData.versions.find(v => v.versionNumber === validationSelection);
-
-      if (record) {
-        setInvoiceData(record.dataJson)
-      } else {
-        const jsonData = JSON.parse(String.raw`${docData.dataXml}`);
-        setInvoiceData(jsonData);
-      }
-
-      */
-      
       const jsonData = JSON.parse(String.raw`${docData.dataXml}`);
       setInvoiceData(jsonData);
 
@@ -144,6 +133,12 @@ const Doc = () => {
       if (docData.status === 'temporarily-rejected') {
         setOpenPopup(true);
       }
+
+      // fetch vertices json
+      const verticesJSON = await fileService.fetchVerticesJson(docData.verticesLink);
+      const verticesArray = getVerticesOnJSOn(verticesJSON)
+      setVertices(verticesArray);
+      console.log(verticesArray)
 
     });
     
@@ -212,7 +207,7 @@ const Doc = () => {
                 value={data[key]}
                 id={fullKey}
                 onInput={handleUpdateJSON}
-                onFocus={setSearchText}
+                onFocus={() => setVerticeKey(key)}
                 onBlur={setSearchText}
                 options={[
                   { label: t('invoice-val'), value: 'Invoice' },
@@ -229,7 +224,7 @@ const Doc = () => {
                 value={data[key]}
                 id={fullKey}
                 onInput={handleUpdateJSON}
-                onFocus={setSearchText}
+                onFocus={() => setVerticeKey(key)}
                 onBlur={setSearchText}
                 options={['GBP', 'EUR', 'USD']}
               />
@@ -242,7 +237,7 @@ const Doc = () => {
               value={data[key]}
               id={fullKey}
               onInput={handleUpdateJSON}
-              onFocus={setSearchText}
+              onFocus={() => setVerticeKey(key)}
               onBlur={setSearchText}
             />
           );
@@ -433,6 +428,36 @@ const Doc = () => {
     setSnackAlert(defaultSnackAlert)
   }
 
+  // resize pane
+
+  const [sidebarWidth, setSidebarWidth] = useState(300); // Initial sidebar width
+
+  const handleMouseDown = (e) => {
+    const startX = e.clientX; // Initial cursor position on mousedown
+    const initialWidth = sidebarWidth; // Initial sidebar width on mousedown
+
+    // Ensure to remove previous event listeners before adding new ones
+    const handleMouseMove = (e) => {
+      const dx = e.clientX - startX; // Difference from initial position
+      const newWidth = initialWidth + dx;
+
+      if (newWidth >= 100 && newWidth <= 700) { // Set min and max width constraints
+        setSidebarWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      // Clean up event listeners after mouse is released
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    // Add event listeners
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+
   return (
     <main className="document__page">
       <Header changeLanguage={changeLanguage} />
@@ -506,7 +531,7 @@ const Doc = () => {
                 </div>
                 {
                   doc && 
-                  <div className="ml-auto flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2 ml-auto text-sm">
                     <PictureAsPdf className="text-red-400" fontSize='medium' />
                     <span className="text-slate-700">{doc.pdfName}</span>
                   </div>
@@ -517,10 +542,9 @@ const Doc = () => {
       </div>
 
       <PanelGroup autoSaveId='doc_panel' direction="horizontal" className="doc__container splited">
-        <Panel className="left_pane" defaultSize={480}>
+          <Panel className="left_pane" defaultSize={480}>
           <div className="validation__form">
             <div className="validation__title">
-              {/* <h3>Validation stage: {validationStage}</h3> */}
               <ValidationSteps stage={validationStage} status={doc?.status} onOpenInfos={setOpenPopup} />
             </div>
             {/* Form */}
@@ -558,7 +582,7 @@ const Doc = () => {
                         </div>
                       </>
                       :
-                      Object.entries(invoiceData).length > 0 ? renderSections(invoiceData) : <span className="text-gray-400 text-center mx-auto">No data to display.</span>
+                      Object.entries(invoiceData).length > 0 ? renderSections(invoiceData) : <span className="mx-auto text-center text-gray-400">No data to display.</span>
                   }
                   {/* Add some padding at bottom */}
                   <div className="h-10"></div>
@@ -569,10 +593,10 @@ const Doc = () => {
           </div>
         </Panel >
         <PanelResizeHandle />
-        <Panel className="right_pane">
+        <Panel className="right_pane" defaultSize={700}>
           <div className="document">
             <Suspense fallback={<>...</>}>
-              <PDFViewer fileUrl={pdfUrl} searchText={searchText} />
+              <PDFViewer fileUrl={pdfUrl} searchText={searchText} verticesGroups={vertices.filter(v => v.key === verticeKey.split('.').pop())} />
             </Suspense>
           </div>
         </Panel>

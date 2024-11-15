@@ -19,7 +19,7 @@
 
 .panel .pagination.show {
     @apply opacity-100 transform translate-x-0; /* Visible state with opacity 100 and original position */
-    flex-basis: 200px; /* Reset to the original flex-basis when shown */
+    flex-basis: 150px; /* Reset to the original flex-basis when shown */
 }
 
 .panel .pagination .pages {
@@ -27,7 +27,7 @@
 }
 
 .page-item {
-    @apply h-[150px] w-[100px] ring-1 ring-gray-200 flex flex-col items-center justify-center flex-shrink-0;
+    @apply h-[150px] w-[100px] ring-1 ring-gray-200 flex flex-col items-center justify-center flex-shrink-0  cursor-pointer hover:ring-2 hover:ring-gray-200;
 }
 .page-item .canvas-container {
     @apply opacity-65
