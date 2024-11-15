@@ -96,10 +96,17 @@ const PDFViewer = ({ fileUrl, searchText }) => {
 
     }, []);
 
+<<<<<<< HEAD:front/src/Components/others/MyDocument.js
+    // change url
+    useEffect(() => {
+        if (fileUrl && webViewerInstance.current) {
+            webViewerInstance.current.UI.loadDocument(fileUrl);
+=======
     useEffect(() => {
         if (webViewerInstance.current) {
             const { UI } = webViewerInstance.current;
             UI.loadDocument(fileUrl);  // Reload the document after disposing the current one
+>>>>>>> 6ade9d806e3e9f9e114f2d7f8fddbaa7e7419756:front/src/Components/others/PDFViewer.js
         }
     }, [fileUrl]);
 

@@ -13,7 +13,7 @@ const Input = React.memo(({label = '', id, value = '', defaultValue = '', onInpu
     }
 
     function handleFocus() {
-        onFocus && onFocus(val);
+        onFocus && onFocus(id, val);
         setTimeout(() => {
             ref.current?.focus();
         }, 10)
@@ -24,14 +24,14 @@ const Input = React.memo(({label = '', id, value = '', defaultValue = '', onInpu
     }
     
     return (
-        <div className='input__form grid grid-cols-3 place-items-start items-center'>
+        <div className='grid items-center grid-cols-3 input__form place-items-start'>
             {
                 label && <label className='col-span-1' htmlFor={id}>{makeReadable(label)}:</label>
             }
             <input
                 ref={ref}
                 id={id}
-                className="form_controller col-span-2 w-full"
+                className="w-full col-span-2 form_controller"
                 name={label}
                 {...props}
                 value={val}

@@ -8,7 +8,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate }) => {
 
     const [columnVisibility, setColumnVisibility] = useState({
         productCode: true,
-        description: false,
+        description: true,
         unitPrice: true,
         quantity: true,
         amount: true,

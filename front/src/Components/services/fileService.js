@@ -277,6 +277,18 @@ const goToNextDocument = async (validation = 'v1') => {
   return response.data;
 }
 
+
+async function fetchVerticesJson(jsonUrl) {
+  try {
+    const response = await axios.get(jsonUrl);
+    const data = response.data;
+    return data;
+  } catch (error) {
+    console.error('Error fetching JSON:', error.message);
+    return null;
+  }
+}
+
 // Export des fonctions du service
 const fileService = {
   fetchFiles,
@@ -297,6 +309,7 @@ const fileService = {
   fetchDocuments,
   goToNextDocument,
   fetchRejectedValidations,
+  fetchVerticesJson,
   API_BASE_URL
 };
 
