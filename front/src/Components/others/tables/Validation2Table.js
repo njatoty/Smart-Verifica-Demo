@@ -33,7 +33,7 @@ export default function Validation2Table({ data = [], version = 'v2', loading = 
             headerName: t('file-col'),
             renderCell: ({row}) => (
                 <CellRenderer.RenderPDFName
-                    pdfName={row.name}
+                    pdfName={row.name || row.pdfName}
                     version={version}
                     id={row._id}
                     isLocked={row.isLocked}

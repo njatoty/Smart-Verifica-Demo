@@ -30,7 +30,7 @@ export default function AllDocumentTable({ data = [], loading = false, page=0, p
             field: 'name',
             headerName: t('file-col'),
             renderCell: ({row}) => (
-                <CellRenderer.RenderPDFName pdfName={row.name} />
+                <CellRenderer.RenderPDFName pdfName={row.name || row.pdfName} />
             ),
             Width: 400,  // Set a fixed width for the 'name' column
             flex: 1      // Allow proportional resizing based on the container width
