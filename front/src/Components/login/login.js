@@ -92,9 +92,14 @@ export default function Login() {
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data));
-  
         // Assurez-vous que le token est bien sauvegardé avant de rediriger
-        navigate("/prevalidation");
+        if (response.data.role === "agent V1")
+          navigate("/prevalidation");
+        else if (response.data.role === "agent V2")
+          navigate("/validation");
+        else if (response.data.role === "admin")
+          navigate('/alldoc')
+
       } else {
         setEmailIncorrect(true)
         console.log("Erreur : aucun token trouvé.");

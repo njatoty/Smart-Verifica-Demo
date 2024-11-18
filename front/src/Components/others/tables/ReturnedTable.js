@@ -60,7 +60,7 @@ export default function ReturnedTable({ data = [], version = 'v1', loading = fal
             field: 'name', headerName: t('file-col'),
             renderCell: ({row}) => (
                 <CellRenderer.RenderPDFName
-                    pdfName={row.name}
+                    pdfName={row.name || row.pdfName}
                     version={version}
                     id={row._id}
                     isLocked={row.isLocked}
