@@ -13,6 +13,7 @@ import {
 } from '@mui/icons-material';
 import './WorkerPDFViewer.css';
 import { useCursorOption, useZoom } from '../../hooks/pdfviewer/hooks';
+import { getPdfBlob } from '../../utils/utils';
 
 GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
 
@@ -29,8 +30,13 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
 
     useEffect(() => {
         if (!fileUrl) return;
+        
         const loadPDF = async () => {
-            const loadingTask = getDocument(fileUrl);
+            
+            const blob = await getPdfBlob(fileUrl);
+            // Convert Blob to ArrayBuffer
+            const arrayBuffer = await blob.arrayBuffer();
+            const loadingTask = getDocument({ data: arrayBuffer });
             const pdfDocument = await loadingTask.promise;
             setPdf(pdfDocument);
             setNumPages(pdfDocument.numPages);
