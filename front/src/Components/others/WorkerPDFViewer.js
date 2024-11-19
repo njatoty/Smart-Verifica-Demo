@@ -321,11 +321,11 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[], showPaginationControlOnP
                     <button title={t('title-selection')} className={`${activeTool === 'selection' ? 'active' : ''}`} onClick={() => setActiveTool('selection')}>
                         <HighlightAltOutlined />
                     </button>
-                    <button title={t('title-zoomin')} onClick={zoomIn}>
-                        <ZoomInOutlined />
-                    </button>
                     <button title={t('title-zoomout')} onClick={zoomOut}>
                         <ZoomOutOutlined />
+                    </button>
+                    <button title={t('title-zoomin')} onClick={zoomIn}>
+                        <ZoomInOutlined />
                     </button>
                     <button title={t('title-rotate-left')} onClick={rotateLeft}>
                         <RotateLeftOutlined />
@@ -367,8 +367,8 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[], showPaginationControlOnP
                         showPaginationControl &&
                         <div className="pagination-control-floating">
                             <div className='controls'>
-                                <button onClick={zoomIn}>
-                                    <ZoomInOutlined />
+                                <button onClick={zoomOut}>
+                                    <ZoomOutOutlined />
                                 </button>
                             </div>
                             <div className='controls'>
@@ -381,8 +381,8 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[], showPaginationControlOnP
                                 </button>
                             </div>
                             <div className='controls'>
-                                <button onClick={zoomOut}>
-                                    <ZoomOutOutlined />
+                                <button onClick={zoomIn}>
+                                    <ZoomInOutlined />
                                 </button>
                             </div>
                         </div>
