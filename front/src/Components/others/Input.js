@@ -13,6 +13,7 @@ const Input = React.memo(({label = '', id, value = '', defaultValue = '', onInpu
 
     function handleFocus() {
         onFocus && onFocus(id, val);
+        onInput && onInput(id, val);
         setTimeout(() => {
             ref.current?.focus();
         }, 10)
