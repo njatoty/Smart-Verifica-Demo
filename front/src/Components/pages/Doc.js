@@ -209,7 +209,7 @@ const Doc = () => {
       const inputVertices = vertices.filter(v => v.key === key);
       setVerticesToDraw(inputVertices)
     }
-  }, [vertices]);
+  }, [vertices, invoiceData]);
 
   // method to update the json by a key
   const handleUpdateJSON = useCallback((key, value) => {
