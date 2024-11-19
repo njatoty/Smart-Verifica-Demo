@@ -15,9 +15,9 @@ const ComboBox = React.memo(({label = '', id, value = '', defaultValue = '', onI
     }
 
     function handleFocus() {
-        onFocus && onFocus(id, val);
+        onInput && onInput(id, val);
         setTimeout(() => {
-            ref.current?.focus();
+            onFocus && onFocus(id, val);
         }, 10);
     }
 
