@@ -5,7 +5,6 @@ const Input = React.memo(({label = '', id, value = '', defaultValue = '', onInpu
 
     const [val, setVal] = useState(value);
     const ref = useRef(null);
-    console.log('Input re-rendered!', value)
 
     function handleChange(newVal) {
         setVal(newVal)
@@ -45,7 +44,7 @@ const Input = React.memo(({label = '', id, value = '', defaultValue = '', onInpu
     )
 }, (prevProps, nextProps) => {
     // Only re-render if `value` or other critical props change
-    return prevProps.value === nextProps.value && prevProps.id === nextProps.id;
+    return (prevProps.value === nextProps.value && prevProps.id === nextProps.id && nextProps.onFocus === prevProps.onFocus);
 })
 
 export default Input

@@ -16,6 +16,7 @@ import CommentBox from "../others/CommentBox";
 import RejectModal from "../others/RejectModal";
 import ComboBox from "../others/ComboBox";
 import LineItemTable from "../others/LineItemTable";
+import DateInput from "../others/DateInput";
 const PDFViewer = React.lazy(() => import('../others/WorkerPDFViewer'));
 
 const defaultSnackAlert = {
@@ -48,7 +49,7 @@ const Doc = () => {
   const [rejectState, setRejectState] = useState(defaultLoadingState);
   const [pdfUrl, setPdfUrl] = useState('');
   const [vertices, setVertices] = useState([]);
-  const [verticeKey, setVerticeKey] = useState('');
+  const [verticesToDraw, setVerticesToDraw] = useState([]);
 
   // get active user infos from localstorage
   const _User = JSON.parse(localStorage.getItem('user'));
@@ -170,8 +171,49 @@ const Doc = () => {
     redirect();
   }
 
+  // focus on line item cell
+  const handleFocusOnLineItem = (key, id) => {
+    console.log(key, id)
+    const vertices = getVerticesOnItemsArray(id, "LineItemsDetails");
+    setVerticesToDraw(vertices)
+  }
+
+  const getVerticesOnItemsArray = (id, key) => {
+    const details = vertices.find(v => v.key === key);
+    if (details) {
+      const { data } = details;
+      const rows = data.map(d => d.properties).flat();
+      const cell = rows.filter(r => id.includes(r.id));
+      // set vertices to draw
+      return cell;
+    }
+    return [];
+  }
+
+  // handle focus on input field
+  const handleFocusOnInputField = useCallback((key) => {
+    // condition for vat
+    if (key.startsWith("Vat")) {
+      // find vat
+      let { Vat } = invoiceData.Invoice;
+      // check if Vat is an array
+      if (Vat.length) {
+
+      } else {
+        let id = Vat[`${key}Id`];
+        const vertices = getVerticesOnItemsArray(id, "VatDetails");
+        setVerticesToDraw(vertices)
+      }
+
+    } else {
+      const inputVertices = vertices.filter(v => v.key === key);
+      setVerticesToDraw(inputVertices)
+    }
+  }, [vertices]);
+
   // method to update the json by a key
   const handleUpdateJSON = useCallback((key, value) => {
+    console.log('updating json...')
     const updated = changeObjectValue(invoiceData, key, value);
     setInvoiceData(updated)
   }, [invoiceData]);
@@ -189,6 +231,7 @@ const Doc = () => {
               data={data[key].length ? data[key] : [data[key]]}
               id={fullKey}
               onRowsUpdate={handleUpdateJSON}
+              onFocus={(id) => handleFocusOnLineItem(key, id) }
             />)
           }
 
@@ -207,8 +250,8 @@ const Doc = () => {
                 value={data[key]}
                 id={fullKey}
                 onInput={handleUpdateJSON}
-                onFocus={() => setVerticeKey(key)}
-                onBlur={setSearchText}
+                onFocus={() => handleFocusOnInputField(key)}
+                onBlur={() => setVerticesToDraw([])}
                 options={[
                   { label: t('invoice-val'), value: 'Invoice' },
                   { label: t('credit-note-val'), value: 'Credit Note' },
@@ -224,11 +267,28 @@ const Doc = () => {
                 value={data[key]}
                 id={fullKey}
                 onInput={handleUpdateJSON}
-                onFocus={() => setVerticeKey(key)}
-                onBlur={setSearchText}
+                onFocus={() => handleFocusOnInputField(key)}
+                onBlur={() => setVerticesToDraw([])}
                 options={['GBP', 'EUR', 'USD']}
               />
             );
+        
+          if (key.includes('Date')) 
+            return (
+              <DateInput
+                key={fullKey}
+                label={key}
+                value={data[key]}
+                id={fullKey}
+                onInput={handleUpdateJSON}
+                onFocus={() => handleFocusOnInputField(key)}
+                onBlur={() => setVerticesToDraw([])}
+              />
+            );
+
+          // Remove VAT Id
+          if (key.startsWith('Vat') && key.endsWith('Id'))
+            return <></>;
 
           return (
             <Input
@@ -237,23 +297,25 @@ const Doc = () => {
               value={data[key]}
               id={fullKey}
               onInput={handleUpdateJSON}
-              onFocus={() => setVerticeKey(key)}
-              onBlur={setSearchText}
+              onFocus={() => handleFocusOnInputField(key)}
+              onBlur={() => setVerticesToDraw([])}
             />
           );
+            
         }
       });
     }, [handleUpdateJSON, t]);
 
   const renderSections = 
     (formData) => {
-      return Object.keys(formData).map((sectionKey) => (
-        <fieldset key={sectionKey}>
-          <legend>{sectionKey}</legend>
-          {renderFields(sectionKey, formData[sectionKey])}
-        </fieldset>
-      ));
-    }
+      return Object.keys(formData).map((sectionKey, index) => {
+        return (
+          <fieldset key={sectionKey}>
+            <legend>{sectionKey}</legend>
+            {renderFields(sectionKey, formData[sectionKey])}
+          </fieldset>
+      )});
+  }
     
 
 
@@ -428,36 +490,6 @@ const Doc = () => {
     setSnackAlert(defaultSnackAlert)
   }
 
-  // resize pane
-
-  const [sidebarWidth, setSidebarWidth] = useState(300); // Initial sidebar width
-
-  const handleMouseDown = (e) => {
-    const startX = e.clientX; // Initial cursor position on mousedown
-    const initialWidth = sidebarWidth; // Initial sidebar width on mousedown
-
-    // Ensure to remove previous event listeners before adding new ones
-    const handleMouseMove = (e) => {
-      const dx = e.clientX - startX; // Difference from initial position
-      const newWidth = initialWidth + dx;
-
-      if (newWidth >= 100 && newWidth <= 700) { // Set min and max width constraints
-        setSidebarWidth(newWidth);
-      }
-    };
-
-    const handleMouseUp = () => {
-      // Clean up event listeners after mouse is released
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    // Add event listeners
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  };
-
-
   return (
     <main className="document__page">
       <Header changeLanguage={changeLanguage} />
@@ -596,7 +628,7 @@ const Doc = () => {
         <Panel className="right_pane" defaultSize={700}>
           <div className="document">
             <Suspense fallback={<>...</>}>
-              <PDFViewer fileUrl={pdfUrl} searchText={searchText} verticesGroups={vertices.filter(v => v.key === verticeKey.split('.').pop())} />
+              <PDFViewer fileUrl={pdfUrl} searchText={searchText} verticesGroups={verticesToDraw} />
             </Suspense>
           </div>
         </Panel>

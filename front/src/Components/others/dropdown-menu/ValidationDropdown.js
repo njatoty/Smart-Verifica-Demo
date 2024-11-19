@@ -92,11 +92,11 @@ const ValidationDropdown = ({user}) => {
                                 Validation v2 {validationV2Count > 0 && <span>{sc(validationV2Count)}</span>}
                             </NavLink>
                         </li>)}
-                        <li>
+                        {(user?.role === "admin" || user?.role === "agent V2") && (<li>
                             <NavLink to="/rejected" className='menu-item' title={`${t('rejected')} ${rejectedCount}`}>
                                 {t('rejected')} {rejectedCount > 0 && <span>{sc(rejectedCount)}</span>}
                             </NavLink>
-                        </li>
+                        </li>)}
                         {(user?.role === "admin" ) && (<li>
                             <NavLink to="/validated" className='menu-item' title={`${t('validated-menu')} ${validatedCount}`}>
                                 {t('validated-menu')} {validatedCount > 0 && <span>{sc(validatedCount)}</span>}

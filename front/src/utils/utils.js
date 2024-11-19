@@ -48,16 +48,6 @@ export function xmlToJson(xml) {
 
 // Function to convert keys into human-readable text
 export const makeReadable = (key) => {
-    // Handle specific cases like VATnumber
-    const specialCases = {
-        VATnumber: 'VAT Number',
-        IBANnumber: 'IBAN Number'
-    };
-
-    // Check if the key matches any special cases
-    if (specialCases[key]) {
-        return specialCases[key];
-    }
     return key
         .replace(/([a-z])([A-Z])/g, '$1 $2')  // Insert space before capital letters
         .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2') // Handle acronyms like VAT
@@ -127,19 +117,59 @@ export const showWorkflowStatus = (document) => {
 
 
 export const getVerticesOnJSOn = (data) => {
-    let vertices = [];
+    const vertices = [];
+    const lineItems = [];
+    const vats = [];
     data.forEach(keyValue => {
         var vert = keyValue.pageAnchor.pageRefs[0].boundingPoly;
         if (vert) {
             vertices.push({
+                id: keyValue.id,
                 key: toCamelCase(keyValue.type),
-                page: keyValue.pageAnchor.pageRefs[0].page,
+                page: +keyValue.pageAnchor.pageRefs[0].page || 0,
                 vertices: vert.normalizedVertices
             })
+            // get line items
+            const lineItem = extractLineItemDetails("line_item", keyValue)
+            if (lineItem) lineItems.push(lineItem);
+            
+            // get vat
+            const vatItem = extractLineItemDetails("vat", keyValue)
+            if (vatItem) vats.push(vatItem);
         }
     });
+
+    vertices.push({ key: "LineItemsDetails", data: lineItems});
+    vertices.push({ key: "VatDetails", data: vats});
     return vertices;
 }
+
+const extractLineItemDetails = (key, data) => {
+    if (data.type !== key) {
+        return null;
+    }
+
+    const lineItem = {
+        id: data.id,
+        mentionText: data.mentionText,
+        vertices: data.pageAnchor.pageRefs[0]?.boundingPoly?.normalizedVertices || [],
+        page: data.pageAnchor.pageRefs[0]?.page || 1, // Default to page 1 if not specified
+        properties: [],
+    };
+
+    data.properties.forEach((property) => {
+        const propDetails = {
+            id: property.id,
+            type: property.type,
+            mentionText: property.mentionText,
+            vertices: property.pageAnchor.pageRefs[0]?.boundingPoly?.normalizedVertices || [],
+            page: property.pageAnchor.pageRefs[0]?.page || 1, // Default to page 1 if not specified
+        };
+        lineItem.properties.push(propDetails);
+    });
+
+    return lineItem;
+};
 
 export const toCamelCase = (str = '') => str
     .toLowerCase() // Convert the entire string to lowercase
@@ -193,3 +223,25 @@ export const getPdfBlob = async (fileUrl) => {
         return await response.blob();
     }
 };
+
+export function detectDateFormat(dateString) {
+    const formats = [
+        { regex: /^\d{2}-\d{2}-\d{4}$/, format: 'dd-MM-yyyy' },
+        { regex: /^\d{4}-\d{2}-\d{2}$/, format: 'yyyy-MM-dd' },
+        { regex: /^\d{2}\/\d{2}\/\d{4}$/, format: 'dd/MM/yyyy' },
+        { regex: /^\d{4}\/\d{2}\/\d{2}$/, format: 'yyyy/MM/dd' },
+        { regex: /^\d{2}\.\d{2}\.\d{4}$/, format: 'dd.MM.yyyy' },
+        { regex: /^\d{4}\.\d{2}\.\d{2}$/, format: 'yyyy.MM.dd' },
+        { regex: /^\d{2} \d{2} \d{4}$/, format: 'dd MM yyyy' },
+        { regex: /^\d{4} \d{2} \d{2}$/, format: 'yyyy MM dd' },
+        { regex: /^(\d{2})\s([a-zéèàêô]+)\s(\d{4})$/i, format: 'dd MMMM yyyy' },
+    ];
+
+    // Loop through each format and test the date string
+    for (const { regex, format } of formats) {
+        if (regex.test(dateString)) {
+            return format;
+        }
+    }
+    return 'Unknown Format';
+}

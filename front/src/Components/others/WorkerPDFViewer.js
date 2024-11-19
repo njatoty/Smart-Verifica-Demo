@@ -10,23 +10,45 @@ import {
     NavigateBeforeOutlined,
     NavigateNextOutlined,
     MenuOpenOutlined,
+    CheckBox,
+    CheckBoxOutlineBlank,
 } from '@mui/icons-material';
 import './WorkerPDFViewer.css';
 import { useCursorOption, useZoom } from '../../hooks/pdfviewer/hooks';
 import { getPdfBlob } from '../../utils/utils';
+import { t } from 'i18next';
 
 GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
 
-export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
+export const PDFViewer = ({ fileUrl, verticesGroups=[], showPaginationControlOnPage=false }) => {
     const [pdf, setPdf] = useState(null);
     const [rotation, setRotation] = useState(0);
     const [numPages, setNumPages] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(true);
-    const [cursorOption, setCursorOption] = useState("selection"); // selection or handtool
-    const { pdfViewerRef, scrollableRef } = useCursorOption(cursorOption);
+    const [activeTool, setActiveTool] = useState("selection"); // selection or handtool
+    const { pdfViewerRef, scrollableRef } = useCursorOption(activeTool);
     const [scale, setScale] = useZoom(scrollableRef, 1.5);
     const [showPagination, setShowPagination] = useState(true);
+    const [showPaginationControl, setShowPaginationControl] = useState(showPaginationControlOnPage);
+
+    const handleKeyDown = (e) => {
+        if (e.ctrlKey) {
+            if (e.key === "h" || e.key === "H") {
+                setActiveTool("handtool");
+                e.preventDefault();
+            }
+            if (e.key === "s" || e.key === "S") {
+                setActiveTool("selection");
+                e.preventDefault();
+            }
+        }
+    };
+
+    useEffect(() => {
+        window.addEventListener("keydown", handleKeyDown, { passive: false });
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, []);
 
     useEffect(() => {
         if (!fileUrl) return;
@@ -49,6 +71,7 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
 
 
     }, [fileUrl]);
+
     const renderPage = async (currentPage, scale, rotation, vertices = []) => {
         const container = pdfViewerRef.current;
     
@@ -64,7 +87,7 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
         textLayerDiv.style.position = 'absolute';
         textLayerDiv.style.top = 0;
         textLayerDiv.style.left = 0;
-        textLayerDiv.style.zIndex = 1;
+        textLayerDiv.style.zIndex = 2;
         textLayerDiv.style.setProperty('--scale-factor', scale);
     
         const pageDiv = document.createElement('div');
@@ -85,7 +108,7 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
         overlayCanvas.style.position = 'absolute';
         overlayCanvas.style.top = 0;
         overlayCanvas.style.left = 0;
-        overlayCanvas.style.zIndex = 2; // Make sure it is above the main canvas
+        overlayCanvas.style.zIndex = 1; // Make sure it is above the main canvas
     
         // Render the PDF page
         const context = canvas.getContext('2d');
@@ -107,6 +130,11 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
 
     // UseEffect to update vertices without re-rendering PDF
     useEffect(() => {
+        if (verticesGroups.length > 0) {
+            let page = parseInt(verticesGroups[0].page) + 1;
+            setCurrentPage(page);
+        }
+        console.log('To Draw', verticesGroups)
         updateVertices(verticesGroups);
     }, [verticesGroups]);
     
@@ -117,7 +145,7 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
         const overlayCanvas = container?.querySelector('canvas:nth-of-type(2)'); // Get the overlay canvas
         if (overlayCanvas) {
             const context = overlayCanvas.getContext('2d');
-            drawVertices(context, { width: overlayCanvas.width, height: overlayCanvas.height }, vertices);
+            drawVertices(context, { width: overlayCanvas.width, height: overlayCanvas.height, scale: overlayCanvas.scale ?? 1 }, vertices);
         }
     };
 
@@ -128,10 +156,9 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
         context.clearRect(0, 0, viewport.width, viewport.height);
         
         vertices.forEach((vertice, groupIndex) => {
-            if (vertice.page == currentPage-1) {
-                context.strokeStyle = `#1E90FF`;
+            if ((vertice.page === 'all')  || parseInt(vertice.page) === currentPage-1) {
+                context.strokeStyle = `rgba(0, 0, 255, 0.8)`;
                 context.lineWidth = 1;
-
                 // Save the current context state
                 context.save();
 
@@ -170,6 +197,10 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
                     } else {
                         context.lineTo(adjustedX, adjustedY);
                     }
+
+                    if (vertices.length === 1) {
+                        scrollToVertex(adjustedX, adjustedY, scale, scrollableRef.current)
+                    }
                 });
                 context.closePath();
                 
@@ -183,6 +214,26 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
             }
         });
     };
+
+    const scrollToVertex = (x, y, scale, container, margin=50) => {
+        if (!container) return;
+    
+        // Adjust the scroll position considering the scale and margin
+        const scrollX = x - margin;
+        const scrollY = y - margin;
+
+        // Ensure the scroll position doesn't go below zero
+        const adjustedX = Math.max(scrollX, 0);
+        const adjustedY = Math.max(scrollY, 0);
+    
+        // Scroll the container to the calculated position
+        container.scrollTo({
+            left: adjustedX,
+            top: adjustedY,
+            behavior: 'smooth',
+        });
+    };
+    
 
     const renderAllPages = async (scale, rotation) => {
         const container = pdfViewerRef.current;
@@ -230,14 +281,15 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
         }
     };
 
-
-
+    const MAX_SCALE = 5; // Maximum zoom level (500%)
+    const MIN_SCALE = 0.5; // Minimum zoom level (50%)
+    
     const zoomIn = () => {
-        setScale((prevScale) => prevScale * 1.2);
+        setScale((prevScale) => Math.min(prevScale * 1.2, MAX_SCALE));
     };
-
+    
     const zoomOut = () => {
-        setScale((prevScale) => prevScale / 1.2);
+        setScale((prevScale) => Math.max(prevScale / 1.2, MIN_SCALE));
     };
 
     const rotateLeft = () => {
@@ -260,32 +312,41 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-slate-200">
+        <div className="flex flex-col h-full bg-slate-200">
             <div className="relative z-50 flex items-center justify-between p-2 bg-white shadow-lg top-bar">
                 <div className="controls">
-                    <button className={`${cursorOption === 'handtool' ? 'active' : ''}`} onClick={() => setCursorOption('handtool')}>
+                    <button title={t('title-hand-tool')} className={`${activeTool === 'handtool' ? 'active' : ''}`} onClick={() => setActiveTool('handtool')}>
                         <BackHandOutlined />
                     </button>
-                    <button className={`${cursorOption === 'selection' ? 'active' : ''}`} onClick={() => setCursorOption('selection')}>
+                    <button title={t('title-selection')} className={`${activeTool === 'selection' ? 'active' : ''}`} onClick={() => setActiveTool('selection')}>
                         <HighlightAltOutlined />
                     </button>
-                    <button onClick={zoomIn}>
+                    <button title={t('title-zoomin')} onClick={zoomIn}>
                         <ZoomInOutlined />
                     </button>
-                    <button onClick={zoomOut}>
+                    <button title={t('title-zoomout')} onClick={zoomOut}>
                         <ZoomOutOutlined />
                     </button>
-                    <button onClick={rotateLeft}>
+                    <button title={t('title-rotate-left')} onClick={rotateLeft}>
                         <RotateLeftOutlined />
                     </button>
-                    <button onClick={rotateRight}>
+                    <button title={t('title-rotate-right')} onClick={rotateRight}>
                         <RotateRightOutlined />
                     </button>
                 </div>
                 <div className='controls'>
-                        <button onClick={() => setShowPagination(!showPagination)}>
-                            <MenuOpenOutlined style={{ transform: !showPagination ? 'rotate(-180deg)' : 'rotate(0deg)'}}/>
-                        </button>
+                    <button onClick={() => setShowPaginationControl(!showPaginationControl)} className='flex items-center gap-2 text-sm'>
+                        {
+                            showPaginationControl ?
+                            <CheckBox />
+                            :
+                            <CheckBoxOutlineBlank />
+                        }
+                        <span>{t('show-pagination-control')}</span>
+                    </button>
+                    <button title={t('title-pagination')} onClick={() => setShowPagination(!showPagination)}>
+                        <MenuOpenOutlined style={{ transform: !showPagination ? 'rotate(-180deg)' : 'rotate(0deg)'}}/>
+                    </button>
                 </div>
             </div>
             <div className='panel'>
@@ -302,28 +363,30 @@ export const PDFViewer = ({ fileUrl, verticesGroups=[] }) => {
                             </div>
                         }
                     </div>
-                    
-                    <div className="pagination-control-floating">
-                        <div className='controls'>
-                            <button onClick={zoomIn}>
-                                <ZoomInOutlined />
-                            </button>
+                    {
+                        showPaginationControl &&
+                        <div className="pagination-control-floating">
+                            <div className='controls'>
+                                <button onClick={zoomIn}>
+                                    <ZoomInOutlined />
+                                </button>
+                            </div>
+                            <div className='controls'>
+                                <button onClick={prevPage} disabled={currentPage <= 1}>
+                                    <NavigateBeforeOutlined />
+                                </button>
+                                <span>{currentPage}</span>
+                                <button onClick={nextPage} disabled={currentPage >= numPages}>
+                                    <NavigateNextOutlined />
+                                </button>
+                            </div>
+                            <div className='controls'>
+                                <button onClick={zoomOut}>
+                                    <ZoomOutOutlined />
+                                </button>
+                            </div>
                         </div>
-                        <div className='controls'>
-                            <button onClick={prevPage} disabled={currentPage <= 1}>
-                                <NavigateBeforeOutlined />
-                            </button>
-                            <span>{currentPage}</span>
-                            <button onClick={nextPage} disabled={currentPage >= numPages}>
-                                <NavigateNextOutlined />
-                            </button>
-                        </div>
-                        <div className='controls'>
-                            <button onClick={zoomOut}>
-                                <ZoomOutOutlined />
-                            </button>
-                        </div>
-                    </div>
+                    }
                 </div>
 
                 <div className={`pagination ${showPagination ? 'show' : 'hidden'}`} >

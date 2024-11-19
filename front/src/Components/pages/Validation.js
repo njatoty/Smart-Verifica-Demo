@@ -8,7 +8,7 @@ const Validation = () => {
 
   const [documents, setDocuments] = useState([]);
   const [isLoading, setLoading] = useState(true);
-  const [page, setPage] = useState(1); // MUI DataGrid utilise l'index de page
+  const [page, setPage] = useState(0); // MUI DataGrid utilise l'index de page
   const [totalPages, setTotalPages] = useState(0);
   const [totalRecords, setTotalRecords] = useState(0);
   
