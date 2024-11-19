@@ -181,6 +181,7 @@ const Doc = () => {
   const getVerticesOnItemsArray = (id, key) => {
     if (!id) return;
     const details = vertices.find(v => v.key === key);
+    console.log(details);
     if (details) {
       const { data } = details;
       const rows = data.map(d => d.properties).flat();
