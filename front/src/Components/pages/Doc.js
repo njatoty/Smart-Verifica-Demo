@@ -179,6 +179,7 @@ const Doc = () => {
   }
 
   const getVerticesOnItemsArray = (id, key) => {
+    if (!id) return;
     const details = vertices.find(v => v.key === key);
     if (details) {
       const { data } = details;
@@ -191,7 +192,7 @@ const Doc = () => {
   }
 
   // handle focus on input field
-  const handleFocusOnInputField = useCallback((key) => {
+  const handleFocusOnInputField = (key) => {
     // condition for vat
     if (key.startsWith("Vat")) {
       // find vat
@@ -209,7 +210,7 @@ const Doc = () => {
       const inputVertices = vertices.filter(v => v.key === key);
       setVerticesToDraw(inputVertices)
     }
-  }, [vertices, invoiceData]);
+  };
 
   // method to update the json by a key
   const handleUpdateJSON = useCallback((key, value) => {
