@@ -13,10 +13,9 @@ const Input = React.memo(({label = '', id, value = '', defaultValue = '', onInpu
 
     function handleFocus() {
         onInput && onInput(id, val);
-        onFocus && onFocus(id, val);
         setTimeout(() => {
-            ref.current?.focus();
-        }, 10)
+            onFocus && onFocus(id, val);
+        }, 10);
     }
 
     function handleBlur() {
