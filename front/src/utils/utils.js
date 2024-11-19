@@ -126,7 +126,7 @@ export const getVerticesOnJSOn = (data) => {
             vertices.push({
                 id: keyValue.id,
                 key: toCamelCase(keyValue.type),
-                page: +keyValue.pageAnchor.pageRefs[0].page || 0,
+                page: keyValue.pageAnchor.pageRefs[0].page || 0,
                 vertices: vert.normalizedVertices
             })
             // get line items
@@ -153,7 +153,7 @@ const extractLineItemDetails = (key, data) => {
         id: data.id,
         mentionText: data.mentionText,
         vertices: data.pageAnchor.pageRefs[0]?.boundingPoly?.normalizedVertices || [],
-        page: data.pageAnchor.pageRefs[0]?.page || 1, // Default to page 1 if not specified
+        page: data.pageAnchor.pageRefs[0]?.page || 0, // Default to page 1 if not specified
         properties: [],
     };
 
@@ -163,7 +163,7 @@ const extractLineItemDetails = (key, data) => {
             type: property.type,
             mentionText: property.mentionText,
             vertices: property.pageAnchor.pageRefs[0]?.boundingPoly?.normalizedVertices || [],
-            page: property.pageAnchor.pageRefs[0]?.page || 1, // Default to page 1 if not specified
+            page: property.pageAnchor.pageRefs[0]?.page || lineItem.page, // Default to page 1 if not specified
         };
         lineItem.properties.push(propDetails);
     });
