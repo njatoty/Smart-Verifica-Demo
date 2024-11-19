@@ -106,6 +106,12 @@
     pointer-events: auto; /* Allow cursor to display correctly */
 }
 
+.pointer-handtool .textLayer span,
+.grab .textLayer span,
+.grabbing .textLayer span {
+    pointer-events: none !important;
+}
+
 .pointer-handtool:active {
     cursor: grabbing;
 }

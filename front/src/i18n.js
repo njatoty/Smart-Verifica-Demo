@@ -100,7 +100,15 @@ const resources = {
             "rejected-dialog-title": "Document rejected in V1",
             "rejected-dialog-content": "The current document has been rejected in V1. Please, kindly review and verify the details.",
             "rejected-dialog-dismiss": "Dismiss",
-            "temporarily-rejected": "Temporarily rejected"
+            "temporarily-rejected": "Temporarily rejected",
+            "show-pagination-control": "Pagination control",
+            "title-hand-tool": "Hand tool (Ctrl + H)",
+            "title-selection": "Selection (Ctrl + S)",
+            "title-zoomin": "Zoom in",
+            "title-zoomout": "Zoom out",
+            "title-rotate-left": "Rotate left",
+            "title-rotate-right": "Rotate right",
+            "title-pagination": "Pagination"
         }
     },
     fr: {
@@ -200,7 +208,15 @@ const resources = {
             "rejected-dialog-title": "Document rejeté en V1",
             "rejected-dialog-content": "Le document actuel a été rejeté en V1. Veuillez, s'il vous plaît, examiner et vérifier les détails.",
             "rejected-dialog-dismiss": "Fermer",
-            "temporarily-rejected": "Rejeté temporairement"
+            "temporarily-rejected": "Rejeté temporairement",
+            "show-pagination-control": "Contrôle de pagination",
+            "title-hand-tool": "Outil main (Ctrl + H)",
+            "title-selection": "Sélection (Ctrl + S)",
+            "title-zoomin": "Agrandir",
+            "title-zoomout": "Réduire",
+            "title-rotate-left": "Pivoter à gauche",
+            "title-rotate-right": "Pivoter à droite",
+            "title-pagination": "Pagination"
         }
     }
 }

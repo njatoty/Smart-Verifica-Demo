@@ -31,7 +31,6 @@ const RejectModal = memo(({ open, onClose, onSubmit }) => {
         { label: "VAT amounts not recognized or incorrect", value: "VAT amounts not recognized or incorrect" },
         { label: "Not able to select company", value: "Not able to select company" },
         { label: "Ballast - Order", value: "Ballast - Order" },
-        { label: "Van Dorp - More than 50 lines", value: "Van Dorp - More than 50 lines" },
         { label: "Ballast - Reminder", value: "Ballast - Reminder" },
         { label: "File too big for delivery", value: "File too big for delivery" },
         { label: "VAT number doesn't correspond with invoice", value: "VAT number doesn't correspond with invoice" },

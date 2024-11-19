@@ -3,7 +3,7 @@ import { Add, Clear, DragIndicator } from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { t } from 'i18next';
 
-const LineItemTable = ({ data = [], id, onRowsUpdate }) => {
+const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus }) => {
     const [rows, setRows] = useState(data);
 
     const [columnVisibility, setColumnVisibility] = useState({
@@ -37,11 +37,12 @@ const LineItemTable = ({ data = [], id, onRowsUpdate }) => {
             
             newRow.id= index.toString();
 
+            newRow.key = index;
+
             return newRow;
         });
         setRows(updatedRows);
 
-        console.log(updatedRows)
         // onRowsUpdate && onRowsUpdate(id, updatedRows); // Update parent component
     }, [data, columnVisibility, id]);
 
@@ -71,7 +72,6 @@ const LineItemTable = ({ data = [], id, onRowsUpdate }) => {
     // Function to handle updating cell data
     const handleUpdateCell = useCallback((key, value) => {
         const [, ,rowId, field] = key.split('.');
-        console.log(rowId, field, value, key)
         const updatedRows = rows.map((row) => {
             if (row.id === rowId && row[field] !== value) {
                 return { ...row, [field]: value };
@@ -143,7 +143,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate }) => {
                         {(provided) => (
                             <tbody ref={provided.innerRef} {...provided.droppableProps}>
                                 {rows.map((lineItem, index) => (
-                                    <Draggable key={lineItem.id} draggableId={`${lineItem.id}`} index={index}>
+                                    <Draggable key={index} draggableId={`${index}`} index={index}>
                                         {(provided) => (
                                             <tr
                                                 ref={provided.innerRef}
@@ -165,6 +165,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate }) => {
                                                             id={`${id}.${lineItem.id}.LineItemProductCode`}
                                                             value={lineItem.LineItemProductCode}
                                                             onUpdate={handleUpdateCell}
+                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemProductCodeId)}
                                                         />
                                                     </td>
                                                 )}
@@ -174,6 +175,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate }) => {
                                                             id={`${id}.${lineItem.id}.LineItemDescription`}
                                                             value={lineItem.LineItemDescription}
                                                             onUpdate={handleUpdateCell}
+                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemDescriptionId)}
                                                         />
                                                     </td>
                                                 )}
@@ -183,6 +185,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate }) => {
                                                             id={`${id}.${lineItem.id}.LineItemUnitPrice`}
                                                             value={lineItem.LineItemUnitPrice}
                                                             onUpdate={handleUpdateCell}
+                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemUnitPriceId)}
                                                         />
                                                     </td>
                                                 )}
@@ -192,6 +195,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate }) => {
                                                             id={`${id}.${lineItem.id}.LineItemQuantity`}
                                                             value={lineItem.LineItemQuantity}
                                                             onUpdate={handleUpdateCell}
+                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemQuantityId)}
                                                         />
                                                     </td>
                                                 )}
@@ -201,6 +205,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate }) => {
                                                             id={`${id}.${lineItem.id}.LineItemAmount`}
                                                             value={lineItem.LineItemAmount}
                                                             onUpdate={handleUpdateCell}
+                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemAmountId)}
                                                         />
                                                     </td>
                                                 )}
@@ -227,7 +232,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate }) => {
     );
 };
 
-const LineItemCell = React.memo(({ value = '', className = '', id = '', onUpdate }) => {
+const LineItemCell = React.memo(({ value = '', className = '', id = '', onUpdate, onFocus }) => {
     const [val, setVal] = useState(value);
 
     const handleChange = useCallback((newVal) => {
@@ -247,6 +252,7 @@ const LineItemCell = React.memo(({ value = '', className = '', id = '', onUpdate
                 value={val}
                 onChange={(e) => handleChange(e.target.value)}
                 autoComplete='off'
+                onFocus={onFocus}
             />
         </div>
     );
