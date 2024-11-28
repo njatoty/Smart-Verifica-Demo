@@ -134,7 +134,7 @@ const Doc = () => {
       }
 
       const jsonData = JSON.parse(String.raw`${docData.dataXml}`);
-      const reorderedJSON = reorderKeys(jsonData.Invoice)
+      const reorderedJSON = reorderKeys(jsonData[docData.type || "Invoice"])
       setInvoiceData({...jsonData, Invoice: reorderedJSON});
       setDoc(docData);
       setLoading(false);
