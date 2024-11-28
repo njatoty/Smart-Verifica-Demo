@@ -88,7 +88,9 @@ const DateInput = React.memo(({ label = '', id, value = '', defaultValue = '', o
                             onClick={handleFocus}
                             onBlur={handleBlur}
                         />
-                        <button className='border border-[#cccccc] border-l-0 px-1 text-slate-600 hover:bg-slate-200' title='Date Picker'
+                        <button
+                            type='button'
+                            className='border border-[#cccccc] border-l-0 px-1 text-slate-600 hover:bg-slate-200' title='Date Picker'
                             onClick={handleIconClick}
                         >
                             <DateRange />

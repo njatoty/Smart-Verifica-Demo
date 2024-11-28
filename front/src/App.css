@@ -74,7 +74,7 @@
     }
 
     .validation__form .validation__title {
-        @apply flex items-center px-8 border-b py-4 font-bold text-gray-500;
+        @apply flex items-center px-8 shadow py-2 h-[54px] font-bold text-gray-500;
     }
     
     .validation__form form {
@@ -97,7 +97,7 @@
     }
 
     .input__form {
-        @apply flex flex-col my-2;
+        @apply flex flex-col my-[5px];
     }
     .input__form label {
         @apply text-sm mb-1
@@ -107,11 +107,11 @@
     }
 
     fieldset {
-        @apply border-t py-2 pl-1;
+        @apply border-t border-slate-100 py-2 pl-1;
     }
 
     fieldset legend {
-        @apply font-semibold text-sm mb-1 pr-2 pl-0;
+        @apply font-semibold text-sm pr-2 pl-0 uppercase;
     }
 
     .document__page .operations {
@@ -154,6 +154,19 @@
 
     .reject__form-group label {
         @apply font-semibold
+    }
+
+    /* Supplier datasource */
+    
+    .data-source_form-group {
+
+    }
+
+    .data-source_label {
+        @apply block text-sm font-medium;
+    }
+    .data-source_input {
+        @apply mt-1 text-sm block w-full border border-[#ccc] rounded shadow-sm p-2 ring-blue-100 focus:ring focus:outline-2 focus:outline-blue-300;
     }
 }
 

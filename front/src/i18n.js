@@ -66,6 +66,7 @@ const resources = {
             "success-add-user": "Successful user backup",
             "add-newuser-menu": "Add new user",
             "view-users-menu": "List of users",
+            "data-source-menu": "Data source",
             "validator1-col": "Validator 1",
             "validator2-col": "Validator 2",
             // status workflow
@@ -108,7 +109,29 @@ const resources = {
             "title-zoomout": "Zoom out",
             "title-rotate-left": "Rotate left",
             "title-rotate-right": "Rotate right",
-            "title-pagination": "Pagination"
+            "title-pagination": "Pagination",
+            "button-done": "Done",
+            "button-close": "Close",
+
+            "supplier": "Supplier",
+            "supplier-name-col": "Name",
+            "supplier-address-col": "Address",
+            "supplier-email-col": "Email",
+            "supplier-taxId-col": "Tax ID",
+            "supplier-website-col": "Website",
+            "supplier-phone-col": "Phone",
+            "delete-supplier": "Delete supplier",
+            "edit-supplier": "Edit supplier",
+            "new-supplier": "New Supplier",
+            "add-supplier": "Add Supplier",
+            "cancel": "Cancel",
+            "recorded": "Recorded",
+            "confirm-deletion": "Confirm Deletion",
+            "delete-supplier-message": "Are you sure you want to delete the supplier (:supplier:) ? This action cannot be undone.",
+            "delete-selected-document": "Delete Document",
+            "deviation-label": "Deviation",
+            "correct": "Correct",
+            "value": "Value",
         }
     },
     fr: {
@@ -175,6 +198,7 @@ const resources = {
             "success-add-user": "Sauvegarde réussie de l'utilisateur",
             "add-newuser-menu": "Nouvel utilisateur",
             "view-users-menu": "Liste d'utilisateurs",
+            "data-source-menu": "Source de données",
             "validator1-col": "Validateur 1",
             "validator2-col": "Validateur 2",
             // status workflow
@@ -216,7 +240,29 @@ const resources = {
             "title-zoomout": "Réduire",
             "title-rotate-left": "Pivoter à gauche",
             "title-rotate-right": "Pivoter à droite",
-            "title-pagination": "Pagination"
+            "title-pagination": "Pagination",
+            "button-done": "Terminer",
+            "button-close": "Fermer",
+
+            "supplier": "Fournisseur",
+            "supplier-name-col": "Nom",
+            "supplier-address-col": "Adresse",
+            "supplier-email-col": "Email",
+            "supplier-taxId-col": "Identifiant fiscal",
+            "supplier-website-col": "Site web",
+            "supplier-phone-col": "Téléphone",
+            "delete-supplier": "Supprimer le fournisseur",
+            "edit-supplier": "Modifier le fournisseur",
+            "new-supplier": "Nouveau Fournisseur",
+            "add-supplier": "Ajouter Fournisseur",
+            "cancel": "Annuler",
+            "recorded": "Enregistrés",
+            "confirm-deletion": "Confirmer la suppression",
+            "delete-supplier-message": "Êtes-vous sûr de vouloir supprimer le fournisseur (:supplier:) ? Cette action est irréversible.",
+            "delete-selected-document": "Supprimer Document",
+            "deviation-label": "Déviation",
+            "correct": "Correct",
+            "value": "Valeur",
         }
     }
 }

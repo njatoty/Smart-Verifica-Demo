@@ -1,0 +1,122 @@
+@import url('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.5.141/pdf_viewer.min.css');
+
+.textLayer span {
+    cursor: auto;
+}
+.panel {
+    @apply flex flex-grow h-full;
+}
+
+.panel .pagination {
+    @apply overflow-y-auto bg-white h-full relative transition-all duration-300 ease-in-out;
+    flex-basis: 200px; /* Initial flex-basis */
+}
+
+.panel .pagination.hidden {
+    @apply opacity-0 transform translate-x-4; /* Hidden state with opacity 0 and slight slide effect */
+    flex-basis: 0; /* Shrinks the element when hidden */
+}
+
+.panel .pagination.show {
+    @apply opacity-100 transform translate-x-0; /* Visible state with opacity 100 and original position */
+    flex-basis: 150px; /* Reset to the original flex-basis when shown */
+}
+
+.panel .pagination .pages {
+    @apply absolute inset-0 px-2 py-4 flex flex-col items-center gap-2;
+}
+
+.page-item {
+    @apply h-[150px] w-[100px] ring-1 ring-gray-200 flex flex-col items-center justify-center flex-shrink-0  cursor-pointer hover:ring-2 hover:ring-gray-200;
+}
+.page-item .canvas-container {
+    @apply opacity-65
+}
+.page-item.active {
+    @apply text-blue-500 ring-2 ring-blue-400 shadow-lg shadow-blue-400/20;
+}
+
+.page-item span {
+    @apply m-auto text-sm text-gray-800;
+}
+
+.pdf-container {
+    @apply relative m-auto p-4;
+}
+
+.pdf-container canvas {
+    @apply shadow-md m-auto
+}
+
+.viewer-container {
+    contain: content;
+    @apply relative flex flex-col flex-grow;
+}
+.viewer {
+    @apply relative w-full h-full overflow-auto flex flex-col flex-grow;
+}
+
+.controls {
+    @apply flex items-center gap-2;
+}
+
+.controls button {
+    @apply border py-1 px-2 border-slate-200 rounded text-slate-700 hover:bg-slate-200 transition-all ease-in duration-300 disabled:opacity-40 disabled:cursor-not-allowed;
+}
+
+.controls button.active {
+    @apply text-blue-500 bg-blue-100
+}
+
+.pdf-content {
+    @apply absolute inset-0 flex;
+}
+
+.loading-image {
+    @apply absolute z-50 bg-black/15 backdrop-blur-sm inset-0 flex items-center justify-center;
+}
+
+.pdf-content:hover .pagination-control-floating{
+    @apply flex;
+}
+
+.pagination-control-floating {
+    @apply fixed flex bottom-10 bg-white/80 shadow-md rounded-2xl left-1/2 -translate-x-1/2 z-50 items-center divide-x divide-slate-200 overflow-hidden;
+}
+
+.pagination-control-floating .controls button {
+    @apply border-none;
+}
+
+/* Cursor style for the grab interaction */
+.pdf-container.grab {
+    cursor: grab;
+}
+
+/* Cursor style for grabbing interaction */
+.pdf-container.grabbing {
+    cursor: grabbing;
+    user-select: none; /* Prevent text selection */
+    pointer-events: auto; 
+}
+/* Disable pointer events for hand tool */
+.pointer-handtool {
+    cursor: grab;
+    user-select: none; /* Prevent text selection */
+    pointer-events: auto; /* Allow cursor to display correctly */
+}
+
+.pointer-handtool .textLayer span,
+.grab .textLayer span,
+.grabbing .textLayer span {
+    pointer-events: none !important;
+}
+
+.pointer-handtool:active {
+    cursor: grabbing;
+}
+
+.pointer-selection {
+    cursor: text;
+    pointer-events: auto; /* Allow text selection */
+}

@@ -42,7 +42,6 @@ const CellRenderer = {
     },
 
     RenderUser: ({ user }) => {
-        console.log(user.role)
         return (
             <UserCell 
                 name={user.displayName} 

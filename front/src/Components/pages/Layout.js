@@ -45,6 +45,13 @@ function SidebarMenu({ pdfCount }) {
           {/* Collapsible Validation Menu */}
           {currentUser?.role === "admin" && ( 
           <UserManagementDropdown /> )}
+          
+          {/* Other menu items */}
+          {currentUser?.role === "admin" && ( <li>
+            <NavLink to="/data-source" className='menu-item'>
+              {t('data-source-menu')}
+            </NavLink>
+          </li>)}
         </ul>
       </nav>
     </aside>

@@ -4,7 +4,7 @@ import React from 'react';
 const ValidationSteps = ({ stage = 'v1', status='', onOpenInfos }) => {
 
     return (
-        <div className="max-w-md mx-auto bg-white rounded-lg">
+        <div className="max-w-md bg-white rounded-lg">
             <div className="flex items-stretch w-full">
                 {/* Step 1 */}
                 <div className="flex items-center flex-grow">

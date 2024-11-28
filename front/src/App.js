@@ -24,7 +24,8 @@ import { theme } from "./theme";
 import { AuthProvider } from './firebase/AuthContext';
 import { memo, useEffect } from "react";
 import Rejected from "./Components/pages/Rejected";
-import WorkerPDFViewer from "./Components/others/WorkerPDFViewer";
+import DataSource from "./Components/pages/DataSource";
+import StandarLookup from "./Components/others/lookup/Lookup";
 
 const AppRoutes = memo(() => (
   <Routes>
@@ -39,6 +40,7 @@ const AppRoutes = memo(() => (
           <Route path="alldoc" key="alldoc" element={<AllDoc />} />
           <Route path="/user/add" element={<AddUser />} />
           <Route path="/user/view" element={<User />} />
+          <Route path="/data-source" element={<DataSource />} />
       </Route>
       <Route path="*" key="no-page" element={<NoPage />} />
       <Route path="document/:validation/:id" key="doc" element={<PrivateRoute><Doc /></PrivateRoute>} />
@@ -46,24 +48,6 @@ const AppRoutes = memo(() => (
       {/* <Route path="info/:id" key="info" element={<InfoPage />} /> */}
       <Route path="forgotPassword" key="forgotPassword" element={<ForgotPassword />} />
       <Route path="reset-password/:token" key="resetPassword" element={<ResetPassword />} />
-      <Route path="worker" key="worker" element={<WorkerPDFViewer fileUrl="/pdf/demo.pdf" verticesGroups={[{ page: '0', vertices: [
-                            {
-                                "x": 0.19226327538490295,
-                                "y": 0.504766047000885
-                            },
-                            {
-                                "x": 0.9099307060241699,
-                                "y": 0.504766047000885
-                            },
-                            {
-                                "x": 0.9099307060241699,
-                                "y": 0.518630862236023
-                            },
-                            {
-                                "x": 0.19226327538490295,
-                                "y": 0.518630862236023
-                            }
-                    ] }]} />} />
   </Routes>
 ));
 

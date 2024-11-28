@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Box } from '@mui/material';
 import useDataGridSettings from '../../../hooks/useDatagridSettings';
 
-export default function TemplateTable({ data = [], cols=[], storageKey = '', loading = false, page=0, pageSize=10, onPaginationChange, totalRecords=0  }) {
+export default function TemplateTable({ data = [], cols=[], storageKey = '', loading = false, page=0, pageSize=10, onPaginationChange, totalRecords=0, onRowsSelected, customGridToolbar }) {
 
     const { t, i18n } = useTranslation();
     const [rows, setRows] = React.useState(data);
@@ -74,7 +74,7 @@ export default function TemplateTable({ data = [], cols=[], storageKey = '', loa
                 checkboxSelection
                 localeText={getLocaleText(i18n.language)}
                 slots={{
-                    toolbar: GridToolbar
+                    toolbar: customGridToolbar || GridToolbar
                 }}
                 loading={loading}
                 disableRowSelectionOnClick
@@ -88,13 +88,14 @@ export default function TemplateTable({ data = [], cols=[], storageKey = '', loa
                 density={density}
                 onDensityChange={(newDensity) => setDensity(newDensity)}
                 components={{
-                    Toolbar: GridToolbar,
+                    Toolbar: customGridToolbar,
                 }}
                 sx={{
                     flexShrink: 0,
                     width: '100%',
                     height: '100%',
                 }}
+                onRowSelectionModelChange={(selection) => onRowsSelected?.(selection)}
             />
         </Box>
     );

@@ -1,18 +1,59 @@
 import * as React from 'react';
-import { Lock } from '@mui/icons-material'
+import { DeleteForever, Lock } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next';
 import CellRenderer from '../cell-render/CellRenderer';
 import TemplateTable from './TemplateTable';
+import { GridToolbarContainer,GridToolbarColumnsButton, GridToolbarFilterButton, GridToolbarDensitySelector, GridToolbarExport } from '@mui/x-data-grid';
+import { Button, CircularProgress } from '@mui/material';
+import fileService from '../../services/fileService';
 
 export default function AllDocumentTable({ data = [], loading = false, page=0, pageSize=10, onPaginationChange, totalRecords=0 }) {
 
     const { t } = useTranslation();
     const [rows, setRows] = React.useState([]);
+    const [isDeleting, setDeleting] = React.useState(false);
+    const [selectedRows, setSelectedRows] = React.useState([]);
 
     React.useEffect(() => {
         setRows(data);
-    }, [data])
+    }, [data]);
 
+    async function handleDeleteSelectedRows(rowsId) {
+        setDeleting(true);
+        fileService.deleteSelectedDocuments(rowsId).
+        then(async res => {
+            const data = res.json();
+            if (data.ok) {
+    
+            }
+            const remainingRows = rows.filter(r => !rowsId.includes(r._id));
+            setRows(remainingRows);
+        }).finally(() => {
+            setDeleting(false);
+        })
+    }
+
+    const CustomGridToolbar = () => {
+        return (
+            <GridToolbarContainer>
+                <GridToolbarColumnsButton />
+                <GridToolbarFilterButton />
+                <GridToolbarDensitySelector />
+                <GridToolbarExport />
+                {
+                    selectedRows.length > 0 &&
+                    <Button
+                        startIcon={ isDeleting ? <CircularProgress color='error' size={16} /> : <DeleteForever />}
+                        variant='outlined' color='error'
+                        className='!ml-auto' size='small'
+                        disabled={isDeleting}
+                        
+                        onClick={() => handleDeleteSelectedRows(selectedRows)}
+                    >{t('delete-selected-document')} ({selectedRows.length})</Button>
+                }
+            </GridToolbarContainer>
+        )
+    }
     
     const columns = [
         {
@@ -91,6 +132,8 @@ export default function AllDocumentTable({ data = [], loading = false, page=0, p
             page={page}
             totalRecords={totalRecords}
             onPaginationChange={onPaginationChange}
+            onRowsSelected={setSelectedRows}
+            customGridToolbar={CustomGridToolbar}
         />
     );
 }
