@@ -132,15 +132,15 @@ export const getVerticesOnJSOn = (data) => {
             // get line items
             const lineItem = extractLineItemDetails("line_item", keyValue)
             if (lineItem) lineItems.push(lineItem);
-            
+
             // get vat
             const vatItem = extractLineItemDetails("vat", keyValue)
             if (vatItem) vats.push(vatItem);
         }
     });
 
-    vertices.push({ key: "LineItemsDetails", data: lineItems});
-    vertices.push({ key: "VatDetails", data: vats});
+    vertices.push({ key: "LineItemsDetails", data: lineItems });
+    vertices.push({ key: "VatDetails", data: vats });
     return vertices;
 }
 
@@ -243,5 +243,119 @@ export function detectDateFormat(dateString) {
             return format;
         }
     }
-    return 'Unknown Format';
+    return 'dd-MM-yyyy';
 }
+
+// Function to add prefix to keys
+export function addPrefixToKeys(obj, prefix) {
+    const transformed = {};
+    for (const [key, value] of Object.entries(obj)) {
+        const newKey = `${prefix}${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+        transformed[newKey] = value;
+    }
+    return transformed;
+}
+
+export function isPointInPolygon(point, vertices) {
+    let { x, y } = point;
+    let inside = false;
+
+    // Loop through each edge of the polygon
+    for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+        const xi = vertices[i].x, yi = vertices[i].y;
+        const xj = vertices[j].x, yj = vertices[j].y;
+
+        // Check if the point is on an edge
+        const onEdge =
+            ((yi > y) !== (yj > y)) &&
+            (x < ((xj - xi) * (y - yi)) / (yj - yi) + xi);
+
+        if (onEdge) {
+            inside = !inside;
+        }
+    }
+
+    return inside;
+}
+
+
+// Desired key order
+const desiredOrder = [
+    "InvoiceId",
+    "InvoiceDate",
+    "DueDate",
+    "DeliveryDate",
+    "InvoiceType",
+    "PurchaseOrder",
+    "Currency",
+    "PaymentTerms",
+    "TotalAmount",
+    "NetAmount",
+    "TotalTaxAmount",
+    "Vat",
+    "SupplierName",
+    "SupplierAddress",
+    "SupplierTaxId",
+    "SupplierRegistration",
+    "SupplierIban",
+    "SupplierPhone",
+    "SupplierWebsite",
+    "SupplierEmail",
+    "ReceiverName",
+    "ReceiverAddress",
+    "ReceiverTaxId",
+    "ShipToName",
+    "ShipToAddress",
+    "RemitToAddress",
+    "LineItem",
+];
+
+export function reorderKeys(obj, order = desiredOrder) {
+    const reordered = {};
+    const additionalKeys = Object.keys(obj).filter((key) => !order.includes(key));
+    const lineItemKey = "LineItem";
+
+    // Add keys in desired order if they exist, except LineItem
+    for (const key of order) {
+        if (key !== lineItemKey && key in obj) {
+            reordered[key] = obj[key];
+        }
+    }
+
+    // Add any additional keys not in the desired order above LineItem
+    for (const key of additionalKeys) {
+        reordered[key] = obj[key];
+    }
+
+    // Add LineItem at the end if it exists
+    if (lineItemKey in obj) {
+        reordered[lineItemKey] = obj[lineItemKey];
+    }
+
+    return reordered;
+}
+
+// Method to convert value (number) to currency (EUR, GBP, USD)
+export function formatCurrency(value, currency) {
+    // Define locales for the currency
+    const localeMap = {
+        EUR: 'de-DE', // Common for Euro in Germany
+        GBP: 'en-GB', // British Pound in the UK
+        USD: 'en-US', // US Dollar
+        // Add more locales here for other currencies if needed
+    };
+
+    // Set the default locale to 'de-DE' if the currency is not in the map
+    const locale = localeMap[currency] || 'de-DE';
+
+    // Use Intl.NumberFormat to format the number
+    const formatter = new Intl.NumberFormat(locale, {
+        style: 'decimal',  // Remove currency style to just format the number
+        maximumFractionDigits: 2, // Optional: control decimal precision
+    });
+
+    // Return the formatted number without the currency symbol
+    return formatter.format(value);
+}
+
+export const CURRENCY_LIST = ['GBP', 'EUR', 'USD'];

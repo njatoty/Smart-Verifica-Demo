@@ -7,7 +7,7 @@ import {
     incrementValidated,
     resetCounts,
     incrementRejected,
-} from './../../redux/store';
+} from './../../redux/documentReducer';
 import { useTranslation } from 'react-i18next';
 import { NavLink, useLocation } from 'react-router-dom';
 import fileService from '../../services/fileService';
@@ -22,7 +22,7 @@ const ValidationDropdown = ({user}) => {
         prevalidationCount,
         rejectedCount,
         validationV2Count,
-        validatedCount
+        validatedCount,
     } = useSelector((state) => state.documents);
 
 

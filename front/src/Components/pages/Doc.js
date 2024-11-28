@@ -1,8 +1,8 @@
-import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Input from "../others/Input";
 // import PDFViewer from "../others/PDFViewer";
-import { useNavigate, useParams } from "react-router-dom";
-import { changeObjectValue, GenerateXMLFromResponse, getVerticesOnJSOn } from '../../utils/utils';
+import { json, useNavigate, useParams } from "react-router-dom";
+import { addPrefixToKeys, changeObjectValue, CURRENCY_LIST, GenerateXMLFromResponse, getVerticesOnJSOn, reorderKeys } from '../../utils/utils';
 import service from '../services/fileService'
 import ValidationSteps from "../others/ValidationSteps";
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Skeleton, Snackbar, Typography } from '@mui/material'
@@ -17,7 +17,10 @@ import RejectModal from "../others/RejectModal";
 import ComboBox from "../others/ComboBox";
 import LineItemTable from "../others/LineItemTable";
 import DateInput from "../others/DateInput";
-const PDFViewer = React.lazy(() => import('../others/WorkerPDFViewer'));
+import InputLookup from "../others/lookup/InputLookup";
+import { useDispatch } from "react-redux";
+import { setCurrency } from "../redux/currencyReducer";
+const PDFViewer = React.lazy(() => import('../others/pdf-viewer/WorkerPDFViewer'));
 
 const defaultSnackAlert = {
   open: false,
@@ -50,6 +53,13 @@ const Doc = () => {
   const [pdfUrl, setPdfUrl] = useState('');
   const [vertices, setVertices] = useState([]);
   const [verticesToDraw, setVerticesToDraw] = useState([]);
+  // selected value from lookup
+  const [selectedSupplier, setSelectedSupplier] = useState({});
+  // Error on field
+  const [lineItemErrors, setLineItemErrors] = useState([])
+  
+  // redux
+  const dispatch = useDispatch();
 
   // get active user infos from localstorage
   const _User = JSON.parse(localStorage.getItem('user'));
@@ -124,8 +134,8 @@ const Doc = () => {
       }
 
       const jsonData = JSON.parse(String.raw`${docData.dataXml}`);
-      setInvoiceData(jsonData);
-
+      const reorderedJSON = reorderKeys(jsonData.Invoice)
+      setInvoiceData({...jsonData, Invoice: reorderedJSON});
       setDoc(docData);
       setLoading(false);
       setPdfUrl(docData.pdfLink);
@@ -136,10 +146,13 @@ const Doc = () => {
       }
 
       // fetch vertices json
-      const verticesJSON = await fileService.fetchVerticesJson(docData.verticesLink);
-      const verticesArray = getVerticesOnJSOn(verticesJSON)
-      setVertices(verticesArray);
-      console.log(verticesArray)
+      try {
+        const verticesJSON = await fileService.fetchVerticesJson(docData.verticesLink);
+        const verticesArray = getVerticesOnJSOn(verticesJSON)
+        setVertices(verticesArray);
+      } catch (error) {
+        console.log("Failed to fetch JSON vertices: ", error)
+      }
 
     });
     
@@ -171,6 +184,22 @@ const Doc = () => {
     redirect();
   }
 
+  // when lookup selected
+  // key is (Supplier, etc)
+  function handleLookupSelect(lookupValue, prefix="Supplier") {
+    const object = addPrefixToKeys(lookupValue, prefix);
+    setSelectedSupplier(object)
+    let newInvoiceData = JSON.parse(JSON.stringify(invoiceData));
+    for (let i = 0; i < Object.keys(object).length; i++) {
+      const key = Object.keys(object)[i];
+      // Check and update key and value
+      if (key in newInvoiceData.Invoice) {
+        newInvoiceData.Invoice[key] = object[key];
+      }
+    }
+    setInvoiceData(newInvoiceData);
+  }
+
   // focus on line item cell
   const handleFocusOnLineItem = (key, id) => {
     console.log(key, id)
@@ -185,11 +214,21 @@ const Doc = () => {
     if (details) {
       const { data } = details;
       const rows = data.map(d => d.properties).flat();
-      const cell = rows.filter(r => id.includes(r.id));
+      const cell = rows.filter(r => Array.isArray(id) ? id.includes(r.id) : id === r.id);
       // set vertices to draw
       return cell;
     }
     return [];
+  }
+
+  function handleOnErrorLineItems(key, isError) {
+    // update if exists
+    if (lineItemErrors.find(l => l.key === key)) {
+      setLineItemErrors(prev => prev.map(i => i.key === key ? ({key, isError}) : prev))
+    } else {
+      // remove it
+      setLineItemErrors(prev => [...prev, { key, isError }])
+    }
   }
 
   // handle focus on input field
@@ -208,10 +247,18 @@ const Doc = () => {
       }
 
     } else {
+      console.log(key)
       const inputVertices = vertices.filter(v => v.key === key);
       setVerticesToDraw(inputVertices)
     }
   };
+
+  // method to update currency
+  const handleUpdateCurrency = (key, value) => {
+    // change redux currency store
+    dispatch(setCurrency(value));
+    handleUpdateJSON(key, value);
+  }
 
   // method to update the json by a key
   const handleUpdateJSON = useCallback((key, value) => {
@@ -234,6 +281,10 @@ const Doc = () => {
               id={fullKey}
               onRowsUpdate={handleUpdateJSON}
               onFocus={(id) => handleFocusOnLineItem(key, id) }
+              // pass vat and net amount
+              totalAmount={invoiceData?.Invoice['TotalAmount'] || 0}
+              netAmount={invoiceData?.Invoice['NetAmount'] || 0}
+              onError={handleOnErrorLineItems}
             />)
           }
 
@@ -244,6 +295,24 @@ const Doc = () => {
             </fieldset>
           );
         } else {
+
+          // for supplier name
+          if (key === 'SupplierName') {
+            return (
+              <InputLookup
+                key={fullKey}
+                label={key}
+                value={data[key]}
+                id={fullKey}
+                onInput={handleUpdateJSON}
+                onFocus={() => handleFocusOnInputField(key)}
+                onBlur={() => setVerticesToDraw([])}
+                onSelect={handleLookupSelect}
+              />
+            );
+          }
+
+          // for invoice type
           if (/invoicetype/i.test(key))
             return (
               <ComboBox
@@ -268,10 +337,10 @@ const Doc = () => {
                 label={key}
                 value={data[key]}
                 id={fullKey}
-                onInput={handleUpdateJSON}
+                onInput={handleUpdateCurrency}
                 onFocus={() => handleFocusOnInputField(key)}
                 onBlur={() => setVerticesToDraw([])}
-                options={['GBP', 'EUR', 'USD']}
+                options={CURRENCY_LIST}
               />
             );
         
@@ -298,15 +367,21 @@ const Doc = () => {
               label={key}
               value={data[key]}
               id={fullKey}
+              showWarning={((key in selectedSupplier) && data[key] !== selectedSupplier[key])}
+              isInvalid={lineItemErrors.find(l => l.key === key)?.isError}
               onInput={handleUpdateJSON}
+              // use suggestions default value of the lookup
+              suggestions={(key in selectedSupplier) ? [selectedSupplier[key]] : []}
               onFocus={() => handleFocusOnInputField(key)}
               onBlur={() => setVerticesToDraw([])}
+              type={key.endsWith('Amount') ? 'numeric' : 'text'}
+              className={key.endsWith('Amount') ? '!col-span-1/2 !w-fit' : ''}
             />
           );
             
         }
       });
-    }, [handleUpdateJSON, t]);
+    }, [handleUpdateJSON, t, invoiceData.Invoice, lineItemErrors]);
 
   const renderSections = 
     (formData) => {
@@ -578,7 +653,7 @@ const Doc = () => {
       <PanelGroup autoSaveId='doc_panel' direction="horizontal" className="doc__container splited">
           <Panel className="left_pane" defaultSize={480}>
           <div className="validation__form">
-            <div className="validation__title">
+            <div className="validation__title bg-white">
               <ValidationSteps stage={validationStage} status={doc?.status} onOpenInfos={setOpenPopup} />
             </div>
             {/* Form */}
@@ -630,7 +705,7 @@ const Doc = () => {
         <Panel className="right_pane" defaultSize={700}>
           <div className="document">
             <Suspense fallback={<>...</>}>
-              <PDFViewer fileUrl={pdfUrl} searchText={searchText} verticesGroups={verticesToDraw} />
+              <PDFViewer fileUrl={pdfUrl} searchText={searchText} verticesGroups={verticesToDraw} verticesArray={vertices} />
             </Suspense>
           </div>
         </Panel>
@@ -680,7 +755,7 @@ const Doc = () => {
 
       </PanelGroup>
       
-      <div className="h-10 bg-gray-200 border-t border-t-300"></div>
+      <div className="h-10 bg-slate-200 border-t border-t-slate-300"></div>
     </main>
   )
 };

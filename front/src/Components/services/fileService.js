@@ -289,6 +289,19 @@ async function fetchVerticesJson(jsonUrl) {
   }
 }
 
+
+const deleteSelectedDocuments = async (documentsIds) => {
+  const response = await fetch(`${API_BASE_URL}/delete-documents`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token()}`,
+    },
+    body: JSON.stringify({documents: documentsIds})
+  });
+  return response;
+}
+
 // Export des fonctions du service
 const fileService = {
   fetchFiles,
@@ -310,6 +323,7 @@ const fileService = {
   goToNextDocument,
   fetchRejectedValidations,
   fetchVerticesJson,
+  deleteSelectedDocuments,
   API_BASE_URL
 };
 
