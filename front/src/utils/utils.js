@@ -117,31 +117,59 @@ export const showWorkflowStatus = (document) => {
 
 
 export const getVerticesOnJSOn = (data) => {
-    const vertices = [];
+    console.log(data)
+    var vertices = [];
     const lineItems = [];
     const vats = [];
-    data.forEach(keyValue => {
-        var vert = keyValue.pageAnchor.pageRefs[0].boundingPoly;
-        if (vert) {
-            vertices.push({
-                id: keyValue.id,
-                key: toCamelCase(keyValue.type),
-                page: keyValue.pageAnchor.pageRefs[0].page || 0,
-                vertices: vert.normalizedVertices
-            })
-            // get line items
-            const lineItem = extractLineItemDetails("line_item", keyValue)
-            if (lineItem) lineItems.push(lineItem);
+    for (let i = 0; i < data.length; i++) {
+        let keyValue = data[i];
+        // FOR INVOICE
+        if (keyValue.pageAnchor) {
+            var vert = keyValue.pageAnchor.pageRefs[0].boundingPoly;
+            if (vert) {
+                vertices.push({
+                    id: keyValue.id,
+                    key: toCamelCase(keyValue.type),
+                    page: keyValue.pageAnchor.pageRefs[0].page || 0,
+                    vertices: vert.normalizedVertices
+                })
+                // get line items
+                const lineItem = extractLineItemDetails("line_item", keyValue)
+                if (lineItem) lineItems.push(lineItem);
 
-            // get vat
-            const vatItem = extractLineItemDetails("vat", keyValue)
-            if (vatItem) vats.push(vatItem);
+                // get vat
+                const vatItem = extractLineItemDetails("vat", keyValue)
+                if (vatItem) vats.push(vatItem);
+            }
+        } else if (keyValue.formFields) {
+
+            let page = keyValue.pageNumber;
+
+            vertices = [...keyValue.formFields.map((item, index) => ({
+                id: index,
+                page: page - 1,
+                key: labelToCapitalized(item.fieldName.textAnchor.content),
+                vertices: item.fieldValue.boundingPoly.normalizedVertices,
+            }))];
+            
+            break;
         }
-    });
-
+    }
+console.log(vertices)
     vertices.push({ key: "LineItemsDetails", data: lineItems });
     vertices.push({ key: "VatDetails", data: vats });
     return vertices;
+}
+
+function labelToCapitalized(label) {
+    if (!label) return "";
+    return label
+        .replace(/[\n:]+/g, '') // Remove \n and trailing colons
+        .replace(/:$/, '') // Remove the trailing colon if it exists
+        .trim() // Remove leading and trailing whitespace
+        .split(' ') // Split into words
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize each word
+        .join(''); // Join them back together
 }
 
 const extractLineItemDetails = (key, data) => {
