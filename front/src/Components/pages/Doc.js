@@ -20,7 +20,7 @@ import DateInput from "../others/DateInput";
 import InputLookup from "../others/lookup/InputLookup";
 import { useDispatch } from "react-redux";
 import { setCurrency } from "../redux/currencyReducer";
-const PDFViewer = React.lazy(() => import('../others/pdf-viewer/WorkerPDFViewer'));
+const PDFViewer = React.lazy(() => import('../others/pdf-viewer/PDFViewerWithSnap'));
 
 const defaultSnackAlert = {
   open: false,
@@ -134,8 +134,8 @@ const Doc = () => {
       }
 
       const jsonData = JSON.parse(String.raw`${docData.dataXml}`);
-      const reorderedJSON = reorderKeys(jsonData.Invoice)
-      setInvoiceData({...jsonData, Invoice: reorderedJSON});
+      const reorderedJSON = reorderKeys(jsonData[docData.type || "Invoice"])
+      setInvoiceData({...jsonData, [docData.type]: reorderedJSON});
       setDoc(docData);
       setLoading(false);
       setPdfUrl(docData.pdfLink);
@@ -193,8 +193,8 @@ const Doc = () => {
     for (let i = 0; i < Object.keys(object).length; i++) {
       const key = Object.keys(object)[i];
       // Check and update key and value
-      if (key in newInvoiceData.Invoice) {
-        newInvoiceData.Invoice[key] = object[key];
+      if (key in newInvoiceData[doc.type]) {
+        newInvoiceData[doc.type][key] = object[key];
       }
     }
     setInvoiceData(newInvoiceData);
@@ -235,7 +235,7 @@ const Doc = () => {
     // condition for vat
     if (key.startsWith("Vat")) {
       // find vat
-      let { Vat } = invoiceData.Invoice;
+      let { Vat } = invoiceData[doc.type];
       // check if Vat is an array
       if (Vat.length) {
 
@@ -281,8 +281,8 @@ const Doc = () => {
               onRowsUpdate={handleUpdateJSON}
               onFocus={(id) => handleFocusOnLineItem(key, id) }
               // pass vat and net amount
-              totalAmount={invoiceData?.Invoice['TotalAmount'] || 0}
-              netAmount={invoiceData?.Invoice['NetAmount'] || 0}
+              totalAmount={invoiceData?.[doc.type]['TotalAmount'] || 0}
+              netAmount={invoiceData?.[doc.type]['NetAmount'] || 0}
               onError={handleOnErrorLineItems}
             />)
           }
@@ -380,7 +380,7 @@ const Doc = () => {
             
         }
       });
-    }, [handleUpdateJSON, t, invoiceData.Invoice, lineItemErrors]);
+    }, [handleUpdateJSON, t, invoiceData, lineItemErrors, doc]);
 
   const renderSections = 
     (formData) => {
