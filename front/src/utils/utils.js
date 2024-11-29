@@ -216,7 +216,7 @@ const isImageFile = (url) => {
 };
 
 // Convert an image to a PDF Blob
-const convertImageToPdf = async (imageUrl) => {
+export const convertImageToPdf = async (imageUrl) => {
     const pdf = new jsPDF();
 
     const image = await loadImage(imageUrl);
@@ -387,3 +387,51 @@ export function formatCurrency(value, currency) {
 }
 
 export const CURRENCY_LIST = ['GBP', 'EUR', 'USD'];
+
+export const fetchAndConvertToBase64 = async (url) => {
+    try {
+        // Étape 1 : Télécharger l'image en tant que Blob
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Erreur lors du téléchargement : ${response.statusText}`);
+        const mimeType = response.headers.get('Content-Type');
+        const blob = await response.blob();
+
+        // Étape 2 : Convertir le Blob en Base64
+        const base64 = await convertObjectUrlToBase64(blob);
+        return [base64,mimeType];
+    } catch (error) {
+        console.error("Erreur lors de la conversion en Base64 :", error);
+    }
+};
+
+export const convertImageToPDF =  (imageSrc, mimeType) => {
+    const pdf = new jsPDF();
+    let format = "JPEG"; // Format par défaut
+    if (mimeType.includes("png")) {
+        format = "PNG";
+    } else if (mimeType.includes("gif")) {
+        format = "GIF";
+    }
+
+    pdf.addImage(imageSrc, format, 0, 0, 210, 297); // Taille A4 (210 x 297 mm)
+
+    const pdfData = pdf.output('blob');
+
+    return URL.createObjectURL(pdfData);
+};
+
+const convertObjectUrlToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+    
+        reader.onloadend = () => {
+          resolve(reader.result); // Cette valeur est l'URL Base64 du fichier
+        };
+    
+        reader.onerror = (error) => {
+          reject(error); // En cas d'erreur, on rejette la promesse
+        };
+    
+        reader.readAsDataURL(file); // Lire le fichier en tant qu'URL Base64
+    });
+};
