@@ -136,10 +136,10 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
         });
 
         // Check if rows have actually changed before updating state
-        if (JSON.stringify(rows) !== JSON.stringify(updatedRows)) {
+        // if (JSON.stringify(rows) !== JSON.stringify(updatedRows)) {
             setRows(updatedRows);
             onRowsUpdate && onRowsUpdate(id, updatedRows);
-        }
+        // }
     }, [rows, onRowsUpdate, id]);
 
     // Function to handle row drag and drop
@@ -333,6 +333,11 @@ const LineItemCell = ({ value = '', className = '', id = '', onUpdate, onFocus, 
         }
     }, [id, onUpdate, type]);
 
+    const handleFocus = () => {
+        onUpdate?.(id, val);
+        onFocus?.();
+    }
+
     useEffect(() => {
         setVal(value);
     }, [value]);
@@ -354,8 +359,8 @@ const LineItemCell = ({ value = '', className = '', id = '', onUpdate, onFocus, 
                 ref={inputRef}
                 onChange={(e) => handleChange(e.target.value)}
                 autoComplete='off'
-                onFocus={onFocus}
-                onClick={onFocus}
+                onFocus={handleFocus}
+                onClick={handleFocus}
                 {...(type === 'numeric') && {
                     type: 'text',
                     inputMode: 'numeric',
