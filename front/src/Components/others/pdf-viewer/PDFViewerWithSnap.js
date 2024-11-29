@@ -16,7 +16,7 @@ import {
 } from '@mui/icons-material';
 import './WorkerPDFViewer.css';
 import { useCursorOption, useZoom } from './hooks';
-import { getPdfBlob, isPointInPolygon } from '../../../utils/utils';
+import { convertImageToPDF, fetchAndConvertToBase64, getPdfBlob, isPointInPolygon } from '../../../utils/utils';
 import { t } from 'i18next';
 import { useCanvasSnap } from 'react-canvas-snap'
 
@@ -135,7 +135,13 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
     const loadPDF = useCallback(async () => {
         if (!fileUrl) return;
         try {
-            const blob = await getPdfBlob(fileUrl);
+            let url = fileUrl;
+            // if document is not a pdf
+            if (!fileUrl.endsWith('.pdf')) {
+                var base64 = await fetchAndConvertToBase64(fileUrl) ;
+                url = convertImageToPDF(base64[0],base64[1]);
+            }
+            const blob = await getPdfBlob(url);
             // Convert Blob to ArrayBuffer
             const arrayBuffer = await blob.arrayBuffer();
             const loadingTask = getDocument({ data: arrayBuffer });
@@ -527,12 +533,12 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
                 <div className="viewer-container">
 
                     <div className="viewer" ref={scrollableRef}>
-                        <div className="pdf-content" style={{ display: loading ? 'none' : 'flex' }}>
+                        <div className="pdf-content">
                             <div ref={pdfViewerRef} className="pdf-container">
                                 {/* HTML TO RENDER THE PDF */}
-                                <div style={{ position: 'relative' }}>
-                                    <canvas ref={canvasRef}></canvas>
-                                    <canvas ref={overlayCanvasRef} style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}></canvas>
+                                <div style={{ position: 'relative', display: loading ? 'none' : 'flex' }} hidden>
+                                    <canvas ref={canvasRef} className={`pdf-canvas ${loading ? 'loading' : ''}`} />
+                                    <canvas ref={overlayCanvasRef} style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }} />
                                     <div ref={textLayerRef} className="textLayer" style={{ position: 'absolute', top: 0, left: 0, zIndex: 2 }}></div>
                                 </div>
                                 {/* END HTML TO RENDER THE PDF */}
