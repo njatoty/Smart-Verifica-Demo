@@ -3,14 +3,14 @@ import { Add, Check, Clear, DragIndicator } from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { t } from 'i18next';
 import { useInView } from 'react-intersection-observer';
-import { styled, Tooltip, tooltipClasses, Typography } from '@mui/material';
+import { styled, Tooltip, tooltipClasses } from '@mui/material';
 import { useSelector } from 'react-redux';
 import { formatCurrency } from '../../utils/utils';
 
 const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, totalAmount = 0, onError, type="Invoice"}) => {
     const [rows, setRows] = useState(data);
-    const [TotalAmount, setTotalAmount] = useState(netAmount);
-    const [NetAmount, setNetAmount] = useState(totalAmount);
+    const [TotalAmount, setTotalAmount] = useState(totalAmount);
+    const [NetAmount, setNetAmount] = useState(netAmount);
     const { currency } = useSelector((state) => state.currency);
     const [hasBeenFullyVisible, setHasBeenFullyVisible] = useState(false);
 
@@ -31,42 +31,13 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
     const [deviation, setDeviation] = useState(0);
     const [lineItemTotalAmount, setLineItemTotalAmount] = useState(0);
 
-
-    useEffect(() => {
-
-        // Only show error when table is in view and deviation has error
-        const fields = ["NetAmount", "TotalAmount", "TotalTaxAmount"]
-            .map(id => document.getElementById(type + "." + id)?.parentElement.parentElement).filter(d => d);
-
-        if (inView && deviation !== 0) {
-            return;
-            fields.forEach((div, index) => {
-                // Calculate the top position based on the index
-                const topPosition = Array.from(fields)
-                    .slice(0, index)
-                    .reduce((acc, curr) => {
-                        const currHeight = curr.offsetHeight + parseInt(getComputedStyle(curr).marginBottom || 0);
-                        return acc + currHeight;
-                    }, 0);
-
-                // Apply the calculated top position
-                div?.setAttribute(
-                    "style",
-                    `position: sticky;top: ${topPosition}px; z-index: ${100 + index}; ${index === 0 ? 'outline: 80px solid #f1f5f9; background: #f1f5f9' : ''}` // Adjust z-index if needed
-                );
-            });
-        } else {
-            fields.map(div => div?.removeAttribute('style'));
-        }
-    }, [inView, deviation, type])
-
     useEffect(() => {
         // Calculate lineItemsAmountTotal
         const total = fixed(rows.reduce((total, item) => toNumber(item.LineItemAmount) + total, 0));
         setLineItemTotalAmount(total);
         // Calculate deviation
         if (NetAmount) {
-            console.log('Nett', TotalAmount)
+            console.log('Nett', NetAmount)
             const deviationValue = (NetAmount - total);
             setDeviation(deviationValue);
     
@@ -83,7 +54,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
     }, [rows, NetAmount, TotalAmount]);
 
 
-    const [columnVisibility, setColumnVisibility] = useState({
+    const [columnVisibility] = useState({
         productCode: true,
         description: true,
         unitPrice: true,
