@@ -7,15 +7,22 @@ import { styled, Tooltip, tooltipClasses, Typography } from '@mui/material';
 import { useSelector } from 'react-redux';
 import { formatCurrency } from '../../utils/utils';
 
-const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, totalAmount = 0, onError, }) => {
+const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, totalAmount = 0, onError, type="Invoice"}) => {
     const [rows, setRows] = useState(data);
     const [TotalAmount, setTotalAmount] = useState(netAmount);
     const [NetAmount, setNetAmount] = useState(totalAmount);
     const { currency } = useSelector((state) => state.currency);
+    const [hasBeenFullyVisible, setHasBeenFullyVisible] = useState(false);
 
     const { ref, inView } = useInView({
         threshold: 0.3
     });
+        
+    // Check if the element is 100% visible and only run the action once
+    if (inView && !hasBeenFullyVisible) {
+        console.log('The element is 100% visible for the first time.');
+        setHasBeenFullyVisible(true); // Update state to prevent further logging or actions
+    }
 
     // to calculate amount deviation
     const toNumber = (n = '0,0') => parseFloat(n?.replace(/\./g, '').replace(',', '.') || 0);
@@ -28,10 +35,11 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
     useEffect(() => {
 
         // Only show error when table is in view and deviation has error
-        const fields = ["Invoice.NetAmount", "Invoice.TotalAmount", "Invoice.TotalTaxAmount"]
-            .map(id => document.getElementById(id)?.parentElement.parentElement).filter(d => d);
+        const fields = ["NetAmount", "TotalAmount", "TotalTaxAmount"]
+            .map(id => document.getElementById(type + "." + id)?.parentElement.parentElement).filter(d => d);
 
         if (inView && deviation !== 0) {
+            return;
             fields.forEach((div, index) => {
                 // Calculate the top position based on the index
                 const topPosition = Array.from(fields)
@@ -50,20 +58,29 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
         } else {
             fields.map(div => div?.removeAttribute('style'));
         }
-    }, [inView, deviation])
+    }, [inView, deviation, type])
 
     useEffect(() => {
         // Calculate lineItemsAmountTotal
         const total = fixed(rows.reduce((total, item) => toNumber(item.LineItemAmount) + total, 0));
         setLineItemTotalAmount(total);
         // Calculate deviation
-        const deviationValue = (NetAmount - total);
-        setDeviation(deviationValue);
+        if (NetAmount) {
+            console.log('Nett', TotalAmount)
+            const deviationValue = (NetAmount - total);
+            setDeviation(deviationValue);
+    
+            // set an error on net Amount
+            onError?.('NetAmount', (deviationValue !== 0))
+        } else if (TotalAmount) {
+            const deviationValue = (TotalAmount - total);
+            setDeviation(deviationValue);
+    
+            // set an error on net Amount
+            onError?.('TotalAmount', (deviationValue !== 0))
+        }
 
-        // set an error on net Amount
-        onError?.('NetAmount', (deviationValue !== 0))
-
-    }, [rows, NetAmount]);
+    }, [rows, NetAmount, TotalAmount]);
 
 
     const [columnVisibility, setColumnVisibility] = useState({
@@ -80,7 +97,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
             setTotalAmount(toNumber(totalAmount));
         if (netAmount)
             setNetAmount(toNumber(netAmount));
-    }, [totalAmount, netAmount])
+    }, [totalAmount, netAmount]);
 
     // Update rows when column visibility changes
     useEffect(() => {
@@ -176,10 +193,11 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
                             </span>
                         </p>
                         :
+                        ( (NetAmount || TotalAmount) &&
                         <p className='bg-green-200 text-black ml-auto py-1 px-2 text-sm'>
                             <Check fontSize='12' />
                             <span className='ml-1 text-slate-800'>{t('correct')}</span>
-                        </p>
+                        </p>)
                 }
             </label>
             <table id="line-item-table" className="border w-full p-1">
