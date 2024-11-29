@@ -22,7 +22,7 @@ import { useCanvasSnap } from 'react-canvas-snap'
 
 GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
 
-export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationControlOnPage=false, verticesArray=[], drawingEnabled=false, onCancelDrawing }) => {
+export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationControlOnPage=false, verticesArray=[], drawingEnabled=false, onCancelDrawing, onCapture }) => {
     const [pdf, setPdf] = useState(null);
     const [rotation, setRotation] = useState(0);
     const [numPages, setNumPages] = useState(0);
@@ -53,8 +53,17 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
     // handle change active tool when drawing is active
     // to avoid autoscrolling caused by handtool
     useEffect(() => {
-        if (drawing) setActiveTool('selection');
-    }, [drawing]);
+        if (drawing) {
+            setActiveTool('selection');
+            const container = pdfViewerRef.current;
+            const overlayCanvas = container?.querySelector('canvas:nth-of-type(2)'); // Get the overlay canvas
+            if (overlayCanvas) {
+                const context = overlayCanvas.getContext('2d');
+                // Clear the entire canvas before drawing
+                context.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+            }
+        }
+    }, [drawing, pdfViewerRef]);
 
     // When rotating or zooming 
     // update canvas snap to adjust width with the page pdf
@@ -93,12 +102,16 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
             // Store the normalized vertices
             const normalizedVertices = [topLeft, topRight, bottomRight, bottomLeft];
 
-            console.log(normalizedVertices);
+            onCapture?.({
+                vertices: normalizedVertices,
+
+            })
         }
     }, {
         drawingEnabled: drawing,
         rect: {
-            outterBackgroundColor: 'rgba(255,255,255,0.5)',
+            outterBackgroundColor: 'rgba(0,0,0,0.2)',
+            borderStyle: 'solid'
         },
         imageQuality: 'high',
         copyImageToClipBoard: false,
@@ -163,7 +176,10 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
         setLoading(true);
         // load pdf
         loadPDF()
-            .finally(() => setTimeout(() => setLoading(false), 0)); // stop loading
+            .finally(() => setTimeout(() => {
+                setLoading(false);
+                setScale(1.5);
+            }, 50)); // stop loading
 
     }, [loadPDF]);
 
