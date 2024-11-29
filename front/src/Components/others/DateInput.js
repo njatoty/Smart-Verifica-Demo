@@ -55,7 +55,8 @@ const DateInput = React.memo(({ label = '', id, value = '', defaultValue = '', o
 
     // Handle icon click to open date picker
     const handleIconClick = () => {
-        setSelectedDate(parse(val, dateFormat, new Date()))
+        let date = parse(val, dateFormat, new Date())
+        setSelectedDate(date == "Invalid Date" ? new Date() : date)
         setOpenDate(true);
         onFocus && onFocus(id, val);
         ref.current.focus();
