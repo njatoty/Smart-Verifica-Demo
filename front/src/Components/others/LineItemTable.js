@@ -236,7 +236,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
                                                             id={`${id}.${lineItem.id}.LineItemProductCode`}
                                                             value={lineItem.LineItemProductCode}
                                                             onUpdate={handleUpdateCell}
-                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemProductCodeId)}
+                                                            onFocus={() => onFocus?.(lineItem.LineItemProductCodeId)}
                                                         />
                                                     </td>
                                                 )}
@@ -246,7 +246,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
                                                             id={`${id}.${lineItem.id}.LineItemDescription`}
                                                             value={lineItem.LineItemDescription}
                                                             onUpdate={handleUpdateCell}
-                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemDescriptionId)}
+                                                            onFocus={() => onFocus?.(lineItem.LineItemDescriptionId)}
                                                         />
                                                     </td>
                                                 )}
@@ -257,7 +257,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
                                                             value={lineItem.LineItemUnitPrice}
                                                             type='numeric'
                                                             onUpdate={handleUpdateCell}
-                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemUnitPriceId)}
+                                                            onFocus={() => onFocus?.(lineItem.LineItemUnitPriceId)}
                                                         />
                                                     </td>
                                                 )}
@@ -268,7 +268,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
                                                             value={lineItem.LineItemQuantity}
                                                             type='numeric'
                                                             onUpdate={handleUpdateCell}
-                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemQuantityId)}
+                                                            onFocus={() => onFocus?.(lineItem.LineItemQuantityId)}
                                                         />
                                                     </td>
                                                 )}
@@ -279,7 +279,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
                                                             value={lineItem.LineItemAmount}
                                                             type='numeric'
                                                             onUpdate={handleUpdateCell}
-                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemAmountId)}
+                                                            onFocus={() => onFocus?.(lineItem.LineItemAmountId)}
                                                         />
                                                     </td>
                                                 )}
@@ -306,7 +306,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
     );
 };
 
-const LineItemCell = React.memo(({ value = '', className = '', id = '', onUpdate, onFocus, type = '' }) => {
+const LineItemCell = ({ value = '', className = '', id = '', onUpdate, onFocus, type = '' }) => {
     const [val, setVal] = useState(value);
     const [isOverflowing, setIsOverflowing] = useState(false);
     const inputRef = useRef(null);
@@ -366,7 +366,7 @@ const LineItemCell = React.memo(({ value = '', className = '', id = '', onUpdate
             />
         </HtmlTooltip>
     );
-});
+};
 
 const HtmlTooltip = styled(({ className, ...props }) => (
     <Tooltip {...props} arrow disableHoverListener classes={{ popper: className }} />
