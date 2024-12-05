@@ -25,7 +25,13 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
     }
 
     // to calculate amount deviation
-    const toNumber = (n = '0,0') => parseFloat(n?.replace(/\./g, '').replace(',', '.') || 0);
+    const toNumber = (n = '0,0') => {
+        if (Array.isArray(n)) {
+            let array = n.map(a => toNumber(a));
+            n = Math.max(...array).toString();
+        }
+        return parseFloat(n?.replace(/\./g, '').replace(',', '.') || 0)
+    }
     const fixed = (n = 0) => n.toFixed(2);
 
     const [deviation, setDeviation] = useState(0);
@@ -94,6 +100,10 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
             newRow.id = index.toString();
 
             newRow.key = index;
+
+            if (Array.isArray(newRow.LineItemAmount)) {
+                newRow.LineItemAmount = newRow.LineItemAmount[0]
+            }
 
             return newRow;
         });
