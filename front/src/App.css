@@ -102,7 +102,7 @@
     .input__form label {
         @apply text-sm mb-1
     }
-    input.form_controller {
+    input.form_controller,textarea.form_controller {
         @apply px-2.5 py-1 text-sm border focus:outline focus:outline-2 focus:outline-offset-0 bg-[#ffffff] text-[#020202] focus:outline-blue-300 border-[#cccccc]
     }
 
@@ -196,5 +196,38 @@
     /* Hovering over the scrollbar itself */
     .custom__scroll::-webkit-scrollbar-thumb:hover {
       background: rgba(100, 100, 100, 1); /* Full opacity when hovered */
+    }
+
+        /* Target scrollable container */
+    .sb {
+        scrollbar-width: thin; /* For Firefox */
+        scrollbar-color: #8a8a8a #f0f0f0; /* Thumb color and track color */
+        overflow-y: scroll; /* Ensure vertical scrolling */
+    }
+    
+    /* WebKit browsers (e.g., Chrome, Edge, Safari) */
+    .sb::-webkit-scrollbar {
+        width: 10px; /* Width of vertical scrollbar */
+        height: 10px; /* Height of horizontal scrollbar */
+    }
+    
+    .sb::-webkit-scrollbar-thumb {
+        background-color: #8a8a8a; /* Scrollbar thumb color */
+        border-radius: 10px; /* Make thumb rounded */
+        border: 2px solid #f0f0f0; /* Create padding around thumb */
+    }
+    
+    .sb::-webkit-scrollbar-track {
+        background-color: #f0f0f0; /* Scrollbar track color */
+        border-radius: 10px; /* Optional: Round the track */
+    }
+
+    /* Hover state */
+    .sb:hover::-webkit-scrollbar-thumb {
+    background-color: #ff5722; /* Change thumb color on hover */
+    }
+
+    .sb:hover::-webkit-scrollbar-track {
+    background-color: #ffe0b2; /* Change track color on hover */
     }
 }

@@ -104,7 +104,7 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
 
             onCapture?.({
                 vertices: normalizedVertices,
-
+                image: capturedImage
             })
         }
     }, {
@@ -118,7 +118,8 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
         helperText: {
             show: true,
             value: 'Mapping'
-        }
+        },
+        isGrayscale: true
     });
 
     const handleKeyDown = (e) => {
@@ -136,7 +137,9 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
 
     // update vertices
     useEffect(() => {
-        setVertices(verticesArray)
+        setVertices(verticesArray);
+        // console.log
+        console.log("changed vertices")
     }, [verticesArray]);
 
 
@@ -262,11 +265,18 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
     useEffect(() => {
 
         if (!pdf) return;
+
+        const container = pdfViewerRef.current;
+        const canvas = canvasRef.current;
+        const overlayCanvas = overlayCanvasRef.current;
+        const textLayerDiv = textLayerRef.current;
+
+        
+        function handleMouseMove(e) {
+            handleOverlayMouseMove(e, overlayCanvas.getBoundingClientRect());
+        }
+        
         const renderPage = async () => {
-            const container = pdfViewerRef.current;
-            const canvas = canvasRef.current;
-            const overlayCanvas = overlayCanvasRef.current;
-            const textLayerDiv = textLayerRef.current;
         
             if (!container || !canvas || !overlayCanvas || !textLayerDiv) return;
         
@@ -287,7 +297,6 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
                 // Set canvas dimensions to match viewport
                 canvas.width = viewport.width;
                 canvas.height = viewport.height;
-                console.log(viewport.height)
         
                 overlayCanvas.width = viewport.width;
                 overlayCanvas.height = viewport.height;
@@ -318,9 +327,7 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
                 textLayerDiv.style.setProperty('--scale-factor', scale);
         
                 // Add event listener for the overlay
-                textLayerDiv.addEventListener('mousemove', (e) => {
-                    handleOverlayMouseMove(e, overlayCanvas.getBoundingClientRect());
-                });
+                textLayerDiv.addEventListener('mousemove', handleMouseMove);
         
                 // Optionally draw vertices if needed
                 // drawVertices(overlayCanvas.getContext('2d'), viewport, vertices, rotation);
@@ -339,8 +346,9 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
             if (renderTaskRef.current) {
                 renderTaskRef.current.cancel();
             }
+            textLayerDiv.removeEventListener("mousemove", handleMouseMove)
         };
-    }, [pdf, currentPage, scale, rotation, pdfViewerRef]);
+    }, [pdf, currentPage, scale, rotation, pdfViewerRef, vertices]);
 
 
     // Function to update only the vertices without re-rendering the page
@@ -530,6 +538,12 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
                         <RotateRightOutlined />
                     </button>
                 </div>
+                {
+                    drawing &&
+                    <div className='text-sm text-yellow-600 bg-yellow-100 border-yellow-500 rounded-md p-[4px] px-2 line-clamp-1'>
+                        Press <button onClick={() => onCancelDrawing?.()} className='font-bold text-white bg-black py-[2px] px-1 rounded-md text-xs'>Escape</button> to cancel
+                    </div>
+                }
                 <div className='controls'>
                     <button onClick={() => setShowPaginationControl(!showPaginationControl)} className='flex items-center gap-2 text-sm'>
                         {
@@ -538,7 +552,7 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
                             :
                             <CheckBoxOutlineBlank />
                         }
-                        <span>{t('show-pagination-control')}</span>
+                        <span className='line-clamp-1'>{t('show-pagination-control')}</span>
                     </button>
                     <button title={t('title-pagination')} onClick={() => setShowPagination(!showPagination)}>
                         <MenuOpenOutlined style={{ transform: !showPagination ? 'rotate(-180deg)' : 'rotate(0deg)'}}/>

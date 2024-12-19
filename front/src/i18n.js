@@ -132,6 +132,13 @@ const resources = {
             "deviation-label": "Deviation",
             "correct": "Correct",
             "value": "Value",
+            "submit": "Submit",
+            "update": "Update",
+            "save-file": "Save file",
+            "saving": "Saving...",
+            "dynamic-list-title": "Manage and Order Dynamic Keys",
+            "add": "Add",
+            "dynamic-keys": "Dynamic Keys"
         }
     },
     fr: {
@@ -263,6 +270,13 @@ const resources = {
             "deviation-label": "Déviation",
             "correct": "Correct",
             "value": "Valeur",
+            "submit": "Valider",
+            "update": "Mettre à jour",
+            "save-file": "Enregistrer le fichier",
+            "saving": "Enregistrement...",
+            "dynamic-list-title": "Gérer et organiser les clés dynamiques",
+            "add": "Ajouter",
+            "dynamic-keys": "Clés dynamiques"
         }
     }
 }

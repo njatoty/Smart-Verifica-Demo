@@ -1,12 +1,17 @@
 import React from 'react'
 import Tabs from '../data-source/tabs'
 import SupplierPage from '../data-source/supplier/page'
+import OCRDynamicKeys from '../data-source/ocr/page'
 
 export const DataSource = () => {
 
-    const tabs = [{
+    const tabs = [
+        {
             label: "Supplier",
             content: <SupplierPage />
+        }, {
+            label: "OCR Dynamic Keys",
+            content: <OCRDynamicKeys />
         }
     ]
     return (

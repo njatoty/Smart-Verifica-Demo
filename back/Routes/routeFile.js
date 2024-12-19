@@ -8,9 +8,12 @@ const {uploadFile, getFiles, getFileById, unlock_file, lock_file, getPrevalidati
   fetchLimitedDocuments,
   checkAvailableDocument,
   insertDocumentFromAI} = require("../Controller/controllerFile")
-const {getValidationByDocumentId, saveValidationDocument, getValidations, validateDocument, getValidationByDocumentIdAndValidation, createXMLFile, returnDocument, rejectDocument} = require("../Controller/controllerValidation")
+const {getValidationByDocumentId, saveValidationDocument, getValidations, validateDocument, getValidationByDocumentIdAndValidation, createXMLFile, returnDocument, rejectDocument, deleteDocuments} = require("../Controller/controllerValidation")
 const {login, signup, forgotPassword, resetPassword} = require("../Controller/controllerAuthentification")
 const {allUser, updateUser, deleteUser} = require("../Controller/ControllerUser")
+const supplierController = require('../Controller/data-source/supplier-controller');
+const { extractTextFromImage } = require("../Controller/api/tesseract-controller")
+const { deleteCustomer, updateCustomer, getCustomerById, createCustomer, getAllCustomers, updateDynamicKeys, updateDynamicKeysOrder, uploadJSONFileKey } = require("../Controller/api/customer-controller")
 
 // Configurer l'emplacement de stockage et les fichiers acceptés
 const storage = multer.diskStorage({
@@ -72,6 +75,7 @@ router.route('/get-validations/:state?').get(getValidations)
 router.route('/get-xml').post(createXMLFile)
 router.route('/return-document/:documentId').post(returnDocument)
 router.route('/reject-document/:documentId').post(rejectDocument)
+router.route('/delete-documents').post(deleteDocuments)
 router.route('/login').post(login)
 router.route('/registerUser').post(signup)
 router.route('/forgot-password').post(forgotPassword)
@@ -85,5 +89,53 @@ router.route('/updateUser').post(updateUser)
 router.route('/generateFile').get(generateExcel)
 
 router.route('/document-counts').get(getDocumentCounts)
+
+// TESSERACT recognition
+router.route('/extract-text').post(extractTextFromImage)
+
+
+// SUPPLIER DATASOURCE
+router.route('/data-source/supplier')
+  .get(supplierController.getAllSuppliers)
+  .post(supplierController.createSupplier);
+
+router.route('/data-source/supplier/:id')
+  .get(supplierController.getSupplierById)
+  .put(supplierController.updateSupplier)
+  .delete(supplierController.deleteSupplier);
+
+
+// customerApi
+
+/**
+* Add new customer
+*/
+router.post('/api/customers', createCustomer);
+
+/**
+* Get all customers
+*/
+router.get('/api/customers', getAllCustomers);
+
+/**
+* Get a single customer by ID
+*/
+router.get('/api/customers/:id', getCustomerById);
+
+/**
+* Update a customer by ID
+*/
+router.put('/api/customers/:id', updateCustomer);
+// update dynamic keys
+router.put('/api/customers/:id/dynamic-keys', updateDynamicKeys);
+// update reorder
+router.put('/api/customers/:id/update-order-dynamic-keys', updateDynamicKeysOrder);
+// read json file
+router.post('/api/customers/:id/upload-json-key', upload.single('jsonFile'), uploadJSONFileKey);
+
+/**
+* Delete a customer by ID
+*/
+router.delete('/api/customers/:id', deleteCustomer);
 
 module.exports = router

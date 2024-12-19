@@ -117,51 +117,75 @@ export const showWorkflowStatus = (document) => {
 
 
 export const getVerticesOnJSOn = (data) => {
-    console.log(data)
     var vertices = [];
     const lineItems = [];
     const vats = [];
-    for (let i = 0; i < data.length; i++) {
-        let keyValue = data[i];
-        // FOR INVOICE
-        if (keyValue.pageAnchor) {
-            var vert = keyValue.pageAnchor.pageRefs[0].boundingPoly;
-            if (vert) {
-                vertices.push({
-                    id: keyValue.id,
-                    key: toCamelCase(keyValue.type),
-                    page: keyValue.pageAnchor.pageRefs[0].page || 0,
-                    vertices: vert.normalizedVertices
-                })
-                // get line items
-                const lineItem = extractLineItemDetails("line_item", keyValue)
-                if (lineItem) lineItems.push(lineItem);
-
-                // get vat
-                const vatItem = extractLineItemDetails("vat", keyValue)
-                if (vatItem) vats.push(vatItem);
+    
+    if (Array.isArray(data)) {
+        for (let i = 0; i < data.length; i++) {
+            let keyValue = data[i];
+            // FOR INVOICE
+            if (keyValue.pageAnchor) {
+                var vert = keyValue.pageAnchor.pageRefs[0].boundingPoly;
+                if (vert) {
+                    vertices.push({
+                        id: keyValue.id,
+                        key: toCamelCase(keyValue.type),
+                        page: keyValue.pageAnchor.pageRefs[0].page || 0,
+                        vertices: vert.normalizedVertices
+                    })
+                    // get line items
+                    const lineItem = extractLineItemDetails("line_item", keyValue)
+                    if (lineItem) lineItems.push(lineItem);
+    
+                    // get vat
+                    const vatItem = extractLineItemDetails("vat", keyValue)
+                    if (vatItem) vats.push(vatItem);
+                }
+            } else if (keyValue.formFields) {
+    
+                let page = keyValue.pageNumber;
+    
+                vertices = [...keyValue.formFields.map((item, index) => ({
+                    id: index,
+                    page: page - 1,
+                    key: labelToCapitalized(item.fieldName.textAnchor.content),
+                    vertices: item.fieldValue.boundingPoly.normalizedVertices,
+                }))];
+                
+                break;
             }
-        } else if (keyValue.formFields) {
-
-            let page = keyValue.pageNumber;
-
-            vertices = [...keyValue.formFields.map((item, index) => ({
-                id: index,
-                page: page - 1,
-                key: labelToCapitalized(item.fieldName.textAnchor.content),
-                vertices: item.fieldValue.boundingPoly.normalizedVertices,
-            }))];
-            
-            break;
         }
+    } else {
+        const verticesWithId = data.pages.map(e => {
+            return e.blocks.map(b => ({
+                page: e.pageNumber - 1,
+                vertices: b.layout.boundingPoly.normalizedVertices
+            }))
+        }).flat().map((v, idx) => ({...v, key: idx}));
+        vertices = [...vertices, verticesWithId].flat();
     }
-console.log(vertices)
+    
     vertices.push({ key: "LineItemsDetails", data: lineItems });
-    vertices.push({ key: "VatDetails", data: vats });
+    // vertices.push({ key: "VatDetails", data: vats });
+    if (vats.length) {
+        const VATs = vats.map((d, vatIndex) => d.properties.map(d => ({
+            ...d,
+            key: (vats.length === 1 ? "": vatIndex) + convertToPascalCase(d.type)
+        }))).flat();
+        vertices = [...vertices, ...VATs];
+    }
     return vertices;
 }
 
-function labelToCapitalized(label) {
+export function convertToPascalCase(str) {
+    return str
+      .split(/\/|-|_/) // Split by slash or dash
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize the first letter of each word
+      .join(''); // Join the words together
+}
+
+export function labelToCapitalized(label) {
     if (!label) return "";
     return label
         .replace(/[\n:]+/g, '') // Remove \n and trailing colons
@@ -169,7 +193,8 @@ function labelToCapitalized(label) {
         .trim() // Remove leading and trailing whitespace
         .split(' ') // Split into words
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize each word
-        .join(''); // Join them back together
+        .join('')
+        .replace(/'/g, ''); // Join them back together
 }
 
 const extractLineItemDetails = (key, data) => {
@@ -308,7 +333,7 @@ export function isPointInPolygon(point, vertices) {
 
 
 // Desired key order
-const desiredOrder = [
+export const invoiceOrder = [
     "InvoiceId",
     "InvoiceDate",
     "DueDate",
@@ -338,7 +363,42 @@ const desiredOrder = [
     "LineItem",
 ];
 
-export function reorderKeys(obj, order = desiredOrder) {
+export const formParserOrder = [
+    "Name",
+    "Gender",
+    "DateOfBirth",
+    "CountryOfBirth",
+    "TownCityOfBirth",
+    "FathersFullName",
+    "MothersFullName",
+    "PassportNumber",
+    "IssueDate",
+    "ExpiryDate",
+    "IssuingAuthority",
+    "PlaceOfIssue",
+    "TypeOfTravelDocument",
+    "CurrentCitizenship",
+    "MaritalStatus",
+    "PresentOccupation",
+    "Address",
+    "TelephoneNumber",
+    "EmailAddress0",
+    "EmailAddress1",
+    "DateOfDeparture",
+    "DateOfEntry",
+    "PurposeOfTravel",
+    "MeansOfTransport",
+    "DurationOfStay",
+    "NumberOfEntriesRequested",
+    "ReferenceNumber",
+    "OfVisaTourist",
+    "ValidUntil",
+    "Country",
+    "City"
+];
+
+
+export function reorderKeys(obj, order = invoiceOrder) {
     const reordered = {};
     const additionalKeys = Object.keys(obj).filter((key) => !order.includes(key));
     const lineItemKey = "LineItem";
@@ -433,5 +493,18 @@ const convertObjectUrlToBase64 = (file) => {
         };
     
         reader.readAsDataURL(file); // Lire le fichier en tant qu'URL Base64
+    });
+};
+
+export const updateArray = (array1, array2) => {
+    // Create a map from array1 for efficient lookup
+    const map = new Map(array1.map(item => [item.name, item.value]));
+
+    // Iterate over array2 and update the value if the name exists in array1
+    return array2.map(item => {
+        if (map.has(item.name)) {
+            return { ...item, value: map.get(item.name) }; // Update value
+        }
+        return item; // Keep unchanged if no match
     });
 };
