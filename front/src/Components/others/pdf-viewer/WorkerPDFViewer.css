@@ -45,7 +45,14 @@
 }
 
 .pdf-container canvas {
-    @apply shadow-md m-auto
+    @apply m-auto
+}
+
+.pdf-container .pdf-canvas {
+    @apply shadow-md
+}
+.pdf-container .pdf-canvas.loading {
+    @apply hidden;
 }
 
 .viewer-container {

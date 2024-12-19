@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { makeReadable } from '../../utils/utils';
 import { useFloating, autoUpdate, offset, flip, shift } from '@floating-ui/react-dom';
+import { CenterFocusStrongOutlined, TabUnselected, TabUnselectedOutlined } from '@mui/icons-material';
 
-const Input = React.memo(({label = '', className='', id, value = '', type='text', defaultValue = '', onInput, onFocus, onBlur, isInvalid = false, showWarning=false, suggestions=[], ...props}) => {
+const Input = React.memo(({label = '', className='', id, value = '', type='text', defaultValue = '', onInput, onFocus, onBlur, isInvalid = false, isMapping=false, showWarning=false, suggestions=[], onMapping, ...props}) => {
 
     const [val, setVal] = useState(value);
     const ref = useRef(null);
@@ -10,6 +11,7 @@ const Input = React.memo(({label = '', className='', id, value = '', type='text'
     const [warningInput, setWarningInput] = useState(showWarning);
     const [sugges, setSugges] = useState(suggestions);
     const [openSuggestion, setOpenSuggestion] = useState(false);
+    const mapping = useMemo(() => isMapping, [isMapping]);
     const { refs, floatingStyles } = useFloating({
         placement: 'bottom-end', // Adjust placement as needed
         middleware: [
@@ -63,7 +65,7 @@ const Input = React.memo(({label = '', className='', id, value = '', type='text'
         setVal(value);
         onInput && onInput(id, value);
     }
-    
+
     return (
         <div className='grid items-center grid-cols-3 input__form place-items-start'>
             {
@@ -76,7 +78,8 @@ const Input = React.memo(({label = '', className='', id, value = '', type='text'
                     className={`w-full form_controller
                         ${invalidInput ? '!border-rose-600 focus:!outline-rose-300 !bg-rose-200' : ''}
                         ${warningInput ? '!border-yellow-600 focus:!outline-yellow-300 !bg-yellow-200' : ''}
-                    `}
+                        ${mapping ? '!bg-indigo-100' : ''}
+                    `.replace(/\n/g, '')}
                     name={label}
                     {...props}
                     value={val}
@@ -94,6 +97,10 @@ const Input = React.memo(({label = '', className='', id, value = '', type='text'
                         }
                     }}
                 />
+                <button title='Map' className={`px-1 bg-slate-50 border border-[#ccc] border-l-0 text-slate-400 hover:text-indigo-500 hover:bg-indigo-100 
+                    ${mapping ? '!bg-indigo-100' : ''}`} onClick={() => onMapping?.()}>
+                    <CenterFocusStrongOutlined fontSize='small' />
+                </button>
                 {
                     (openSuggestion && sugges.length !== 0) && 
                     <div
@@ -121,6 +128,7 @@ const Input = React.memo(({label = '', className='', id, value = '', type='text'
         && nextProps.isInvalid === prevProps.isInvalid
         && nextProps.showWarning === prevProps.showWarning
         && nextProps.suggestions === prevProps.suggestions
+        && nextProps.isMapping === prevProps.isMapping
     );
 })
 

@@ -3,70 +3,64 @@ import { Add, Check, Clear, DragIndicator } from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { t } from 'i18next';
 import { useInView } from 'react-intersection-observer';
-import { styled, Tooltip, tooltipClasses, Typography } from '@mui/material';
+import { styled, Tooltip, tooltipClasses } from '@mui/material';
 import { useSelector } from 'react-redux';
 import { formatCurrency } from '../../utils/utils';
+import PropTypes from 'prop-types';
 
-const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, totalAmount = 0, onError, }) => {
+const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, totalAmount = 0, onError, type="Invoice"}) => {
     const [rows, setRows] = useState(data);
-    const [TotalAmount, setTotalAmount] = useState(netAmount);
-    const [NetAmount, setNetAmount] = useState(totalAmount);
+    const [TotalAmount, setTotalAmount] = useState(totalAmount);
+    const [NetAmount, setNetAmount] = useState(netAmount);
     const { currency } = useSelector((state) => state.currency);
+    const [hasBeenFullyVisible, setHasBeenFullyVisible] = useState(false);
 
     const { ref, inView } = useInView({
         threshold: 0.3
     });
+        
+    // Check if the element is 100% visible and only run the action once
+    if (inView && !hasBeenFullyVisible) {
+        console.log('The element is 100% visible for the first time.');
+        setHasBeenFullyVisible(true); // Update state to prevent further logging or actions
+    }
 
     // to calculate amount deviation
-    const toNumber = (n = '0,0') => parseFloat(n?.replace(/\./g, '').replace(',', '.') || 0);
+    const toNumber = (n = '0,0') => {
+        if (Array.isArray(n)) {
+            let array = n.map(a => toNumber(a));
+            n = Math.max(...array).toString();
+        }
+        return parseFloat(n?.replace(/\./g, '').replace(',', '.') || 0)
+    }
     const fixed = (n = 0) => n.toFixed(2);
 
     const [deviation, setDeviation] = useState(0);
     const [lineItemTotalAmount, setLineItemTotalAmount] = useState(0);
-
-
-    useEffect(() => {
-
-        // Only show error when table is in view and deviation has error
-        const fields = ["Invoice.NetAmount", "Invoice.TotalAmount", "Invoice.TotalTaxAmount"]
-            .map(id => document.getElementById(id)?.parentElement.parentElement).filter(d => d);
-
-        if (inView && deviation !== 0) {
-            fields.forEach((div, index) => {
-                // Calculate the top position based on the index
-                const topPosition = Array.from(fields)
-                    .slice(0, index)
-                    .reduce((acc, curr) => {
-                        const currHeight = curr.offsetHeight + parseInt(getComputedStyle(curr).marginBottom || 0);
-                        return acc + currHeight;
-                    }, 0);
-
-                // Apply the calculated top position
-                div?.setAttribute(
-                    "style",
-                    `position: sticky;top: ${topPosition}px; z-index: ${100 + index}; ${index === 0 ? 'outline: 80px solid #f1f5f9; background: #f1f5f9' : ''}` // Adjust z-index if needed
-                );
-            });
-        } else {
-            fields.map(div => div?.removeAttribute('style'));
-        }
-    }, [inView, deviation])
 
     useEffect(() => {
         // Calculate lineItemsAmountTotal
         const total = fixed(rows.reduce((total, item) => toNumber(item.LineItemAmount) + total, 0));
         setLineItemTotalAmount(total);
         // Calculate deviation
-        const deviationValue = (NetAmount - total);
-        setDeviation(deviationValue);
+        if (NetAmount) {
+            const deviationValue = (NetAmount - total);
+            setDeviation(deviationValue);
+    
+            // set an error on net Amount
+            onError?.('NetAmount', (deviationValue !== 0))
+        } else if (TotalAmount) {
+            const deviationValue = (TotalAmount - total);
+            setDeviation(deviationValue);
+    
+            // set an error on net Amount
+            onError?.('TotalAmount', (deviationValue !== 0))
+        }
 
-        // set an error on net Amount
-        onError?.('NetAmount', (deviationValue !== 0))
-
-    }, [rows, NetAmount]);
+    }, [rows, NetAmount, TotalAmount]);
 
 
-    const [columnVisibility, setColumnVisibility] = useState({
+    const [columnVisibility] = useState({
         productCode: true,
         description: true,
         unitPrice: true,
@@ -80,7 +74,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
             setTotalAmount(toNumber(totalAmount));
         if (netAmount)
             setNetAmount(toNumber(netAmount));
-    }, [totalAmount, netAmount])
+    }, [totalAmount, netAmount]);
 
     // Update rows when column visibility changes
     useEffect(() => {
@@ -106,6 +100,10 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
             newRow.id = index.toString();
 
             newRow.key = index;
+
+            if (Array.isArray(newRow.LineItemAmount)) {
+                newRow.LineItemAmount = newRow.LineItemAmount[0]
+            }
 
             return newRow;
         });
@@ -148,10 +146,8 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
         });
 
         // Check if rows have actually changed before updating state
-        if (JSON.stringify(rows) !== JSON.stringify(updatedRows)) {
-            setRows(updatedRows);
-            onRowsUpdate && onRowsUpdate(id, updatedRows);
-        }
+        setRows(updatedRows);
+        onRowsUpdate && onRowsUpdate(id, updatedRows);
     }, [rows, onRowsUpdate, id]);
 
     // Function to handle row drag and drop
@@ -176,10 +172,11 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
                             </span>
                         </p>
                         :
+                        ( (NetAmount || TotalAmount) &&
                         <p className='bg-green-200 text-black ml-auto py-1 px-2 text-sm'>
                             <Check fontSize='12' />
                             <span className='ml-1 text-slate-800'>{t('correct')}</span>
-                        </p>
+                        </p>)
                 }
             </label>
             <table id="line-item-table" className="border w-full p-1">
@@ -234,7 +231,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
                                                 <td className="text-center">
                                                     <button
                                                         type="button"
-                                                        className="p-1 self-center hover:bg-red-100 rounded-md"
+                                                        className="p-1 self-center opacity-50 hover:opacity-100 hover:bg-red-100 rounded-md"
                                                         onClick={() => handleDeleteRow(lineItem.id)}
                                                     >
                                                         <Clear className="text-rose-500" />
@@ -247,7 +244,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
                                                             id={`${id}.${lineItem.id}.LineItemProductCode`}
                                                             value={lineItem.LineItemProductCode}
                                                             onUpdate={handleUpdateCell}
-                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemProductCodeId)}
+                                                            onFocus={() => onFocus?.(lineItem.LineItemProductCodeId)}
                                                         />
                                                     </td>
                                                 )}
@@ -257,7 +254,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
                                                             id={`${id}.${lineItem.id}.LineItemDescription`}
                                                             value={lineItem.LineItemDescription}
                                                             onUpdate={handleUpdateCell}
-                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemDescriptionId)}
+                                                            onFocus={() => onFocus?.(lineItem.LineItemDescriptionId)}
                                                         />
                                                     </td>
                                                 )}
@@ -268,7 +265,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
                                                             value={lineItem.LineItemUnitPrice}
                                                             type='numeric'
                                                             onUpdate={handleUpdateCell}
-                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemUnitPriceId)}
+                                                            onFocus={() => onFocus?.(lineItem.LineItemUnitPriceId)}
                                                         />
                                                     </td>
                                                 )}
@@ -279,7 +276,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
                                                             value={lineItem.LineItemQuantity}
                                                             type='numeric'
                                                             onUpdate={handleUpdateCell}
-                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemQuantityId)}
+                                                            onFocus={() => onFocus?.(lineItem.LineItemQuantityId)}
                                                         />
                                                     </td>
                                                 )}
@@ -290,7 +287,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
                                                             value={lineItem.LineItemAmount}
                                                             type='numeric'
                                                             onUpdate={handleUpdateCell}
-                                                            onFocus={() => onFocus && onFocus(lineItem.LineItemAmountId)}
+                                                            onFocus={() => onFocus?.(lineItem.LineItemAmountId)}
                                                         />
                                                     </td>
                                                 )}
@@ -317,7 +314,7 @@ const LineItemTable = ({ data = [], id, onRowsUpdate, onFocus, netAmount = 0, to
     );
 };
 
-const LineItemCell = React.memo(({ value = '', className = '', id = '', onUpdate, onFocus, type = '' }) => {
+const LineItemCell = ({ value = '', className = '', id = '', onUpdate, onFocus, type = '' }) => {
     const [val, setVal] = useState(value);
     const [isOverflowing, setIsOverflowing] = useState(false);
     const inputRef = useRef(null);
@@ -344,6 +341,11 @@ const LineItemCell = React.memo(({ value = '', className = '', id = '', onUpdate
         }
     }, [id, onUpdate, type]);
 
+    const handleFocus = () => {
+        onUpdate?.(id, val);
+        onFocus?.();
+    }
+
     useEffect(() => {
         setVal(value);
     }, [value]);
@@ -365,8 +367,8 @@ const LineItemCell = React.memo(({ value = '', className = '', id = '', onUpdate
                 ref={inputRef}
                 onChange={(e) => handleChange(e.target.value)}
                 autoComplete='off'
-                onFocus={onFocus}
-                onClick={onFocus}
+                onFocus={handleFocus}
+                onClick={handleFocus}
                 {...(type === 'numeric') && {
                     type: 'text',
                     inputMode: 'numeric',
@@ -377,7 +379,16 @@ const LineItemCell = React.memo(({ value = '', className = '', id = '', onUpdate
             />
         </HtmlTooltip>
     );
-});
+};
+
+LineItemCell.prototype = {
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), // Allow string or number
+    className: PropTypes.string, // Optional className string
+    id: PropTypes.string, // Optional id string
+    onUpdate: PropTypes.func, // Function to handle update
+    onFocus: PropTypes.func, // Function to handle focus
+    type: PropTypes.oneOf(['text', 'numeric']), // Type of cell ('input', etc.)
+}
 
 const HtmlTooltip = styled(({ className, ...props }) => (
     <Tooltip {...props} arrow disableHoverListener classes={{ popper: className }} />

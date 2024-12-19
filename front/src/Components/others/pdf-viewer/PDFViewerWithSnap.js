@@ -16,13 +16,13 @@ import {
 } from '@mui/icons-material';
 import './WorkerPDFViewer.css';
 import { useCursorOption, useZoom } from './hooks';
-import { getPdfBlob, isPointInPolygon } from '../../../utils/utils';
+import { convertImageToPDF, fetchAndConvertToBase64, getPdfBlob, isPointInPolygon } from '../../../utils/utils';
 import { t } from 'i18next';
 import { useCanvasSnap } from 'react-canvas-snap'
 
 GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
 
-export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationControlOnPage=false, verticesArray=[], drawingEnabled=false, onCancelDrawing }) => {
+export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationControlOnPage=false, verticesArray=[], drawingEnabled=false, onCancelDrawing, onCapture }) => {
     const [pdf, setPdf] = useState(null);
     const [rotation, setRotation] = useState(0);
     const [numPages, setNumPages] = useState(0);
@@ -53,8 +53,17 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
     // handle change active tool when drawing is active
     // to avoid autoscrolling caused by handtool
     useEffect(() => {
-        if (drawing) setActiveTool('selection');
-    }, [drawing]);
+        if (drawing) {
+            setActiveTool('selection');
+            const container = pdfViewerRef.current;
+            const overlayCanvas = container?.querySelector('canvas:nth-of-type(2)'); // Get the overlay canvas
+            if (overlayCanvas) {
+                const context = overlayCanvas.getContext('2d');
+                // Clear the entire canvas before drawing
+                context.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+            }
+        }
+    }, [drawing, pdfViewerRef]);
 
     // When rotating or zooming 
     // update canvas snap to adjust width with the page pdf
@@ -93,19 +102,24 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
             // Store the normalized vertices
             const normalizedVertices = [topLeft, topRight, bottomRight, bottomLeft];
 
-            console.log(normalizedVertices);
+            onCapture?.({
+                vertices: normalizedVertices,
+                image: capturedImage
+            })
         }
     }, {
         drawingEnabled: drawing,
         rect: {
-            outterBackgroundColor: 'rgba(255,255,255,0.5)',
+            outterBackgroundColor: 'rgba(0,0,0,0.2)',
+            borderStyle: 'solid'
         },
         imageQuality: 'high',
         copyImageToClipBoard: false,
         helperText: {
             show: true,
             value: 'Mapping'
-        }
+        },
+        isGrayscale: true
     });
 
     const handleKeyDown = (e) => {
@@ -123,7 +137,9 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
 
     // update vertices
     useEffect(() => {
-        setVertices(verticesArray)
+        setVertices(verticesArray);
+        // console.log
+        console.log("changed vertices")
     }, [verticesArray]);
 
 
@@ -135,7 +151,13 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
     const loadPDF = useCallback(async () => {
         if (!fileUrl) return;
         try {
-            const blob = await getPdfBlob(fileUrl);
+            let url = fileUrl;
+            // if document is not a pdf
+            if (!fileUrl.endsWith('.pdf')) {
+                var base64 = await fetchAndConvertToBase64(fileUrl) ;
+                url = convertImageToPDF(base64[0],base64[1]);
+            }
+            const blob = await getPdfBlob(url);
             // Convert Blob to ArrayBuffer
             const arrayBuffer = await blob.arrayBuffer();
             const loadingTask = getDocument({ data: arrayBuffer });
@@ -157,7 +179,10 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
         setLoading(true);
         // load pdf
         loadPDF()
-            .finally(() => setTimeout(() => setLoading(false), 0)); // stop loading
+            .finally(() => setTimeout(() => {
+                setLoading(false);
+                setScale(1.5);
+            }, 50)); // stop loading
 
     }, [loadPDF]);
 
@@ -240,11 +265,18 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
     useEffect(() => {
 
         if (!pdf) return;
+
+        const container = pdfViewerRef.current;
+        const canvas = canvasRef.current;
+        const overlayCanvas = overlayCanvasRef.current;
+        const textLayerDiv = textLayerRef.current;
+
+        
+        function handleMouseMove(e) {
+            handleOverlayMouseMove(e, overlayCanvas.getBoundingClientRect());
+        }
+        
         const renderPage = async () => {
-            const container = pdfViewerRef.current;
-            const canvas = canvasRef.current;
-            const overlayCanvas = overlayCanvasRef.current;
-            const textLayerDiv = textLayerRef.current;
         
             if (!container || !canvas || !overlayCanvas || !textLayerDiv) return;
         
@@ -265,7 +297,6 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
                 // Set canvas dimensions to match viewport
                 canvas.width = viewport.width;
                 canvas.height = viewport.height;
-                console.log(viewport.height)
         
                 overlayCanvas.width = viewport.width;
                 overlayCanvas.height = viewport.height;
@@ -296,9 +327,7 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
                 textLayerDiv.style.setProperty('--scale-factor', scale);
         
                 // Add event listener for the overlay
-                textLayerDiv.addEventListener('mousemove', (e) => {
-                    handleOverlayMouseMove(e, overlayCanvas.getBoundingClientRect());
-                });
+                textLayerDiv.addEventListener('mousemove', handleMouseMove);
         
                 // Optionally draw vertices if needed
                 // drawVertices(overlayCanvas.getContext('2d'), viewport, vertices, rotation);
@@ -317,8 +346,9 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
             if (renderTaskRef.current) {
                 renderTaskRef.current.cancel();
             }
+            textLayerDiv.removeEventListener("mousemove", handleMouseMove)
         };
-    }, [pdf, currentPage, scale, rotation, pdfViewerRef]);
+    }, [pdf, currentPage, scale, rotation, pdfViewerRef, vertices]);
 
 
     // Function to update only the vertices without re-rendering the page
@@ -508,6 +538,12 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
                         <RotateRightOutlined />
                     </button>
                 </div>
+                {
+                    drawing &&
+                    <div className='text-sm text-yellow-600 bg-yellow-100 border-yellow-500 rounded-md p-[4px] px-2 line-clamp-1'>
+                        Press <button onClick={() => onCancelDrawing?.()} className='font-bold text-white bg-black py-[2px] px-1 rounded-md text-xs'>Escape</button> to cancel
+                    </div>
+                }
                 <div className='controls'>
                     <button onClick={() => setShowPaginationControl(!showPaginationControl)} className='flex items-center gap-2 text-sm'>
                         {
@@ -516,7 +552,7 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
                             :
                             <CheckBoxOutlineBlank />
                         }
-                        <span>{t('show-pagination-control')}</span>
+                        <span className='line-clamp-1'>{t('show-pagination-control')}</span>
                     </button>
                     <button title={t('title-pagination')} onClick={() => setShowPagination(!showPagination)}>
                         <MenuOpenOutlined style={{ transform: !showPagination ? 'rotate(-180deg)' : 'rotate(0deg)'}}/>
@@ -527,12 +563,12 @@ export const PDFViewerWithSnap = ({ fileUrl, verticesGroups=[], showPaginationCo
                 <div className="viewer-container">
 
                     <div className="viewer" ref={scrollableRef}>
-                        <div className="pdf-content" style={{ display: loading ? 'none' : 'flex' }}>
+                        <div className="pdf-content">
                             <div ref={pdfViewerRef} className="pdf-container">
                                 {/* HTML TO RENDER THE PDF */}
-                                <div style={{ position: 'relative' }}>
-                                    <canvas ref={canvasRef}></canvas>
-                                    <canvas ref={overlayCanvasRef} style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}></canvas>
+                                <div style={{ position: 'relative', display: loading ? 'none' : 'flex' }} hidden>
+                                    <canvas ref={canvasRef} className={`pdf-canvas ${loading ? 'loading' : ''}`} />
+                                    <canvas ref={overlayCanvasRef} style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }} />
                                     <div ref={textLayerRef} className="textLayer" style={{ position: 'absolute', top: 0, left: 0, zIndex: 2 }}></div>
                                 </div>
                                 {/* END HTML TO RENDER THE PDF */}

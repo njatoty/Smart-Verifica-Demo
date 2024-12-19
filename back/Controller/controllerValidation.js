@@ -88,7 +88,7 @@ exports.saveValidationDocument = async (req, res) => {
     try {
 
         const { documentId } = req.params; // document id
-        const { json_data, versionNumber } = req.body;
+        const { json_data, versionNumber, vertices={} } = req.body;
 
         if (json_data) {
 
@@ -107,7 +107,8 @@ exports.saveValidationDocument = async (req, res) => {
                         $set: {
                             'versions.$.dataJson': json_data, 
                             lockedBy: req.user._id,
-                            dataXml: JSON.stringify(json_data)
+                            dataXml: JSON.stringify(json_data),
+                            vertices: JSON.stringify(vertices)
                         }
                     }, // Update existing version's dataJson
                     { new: true } // Return the updated document
@@ -121,7 +122,8 @@ exports.saveValidationDocument = async (req, res) => {
                             versions: { versionNumber, dataJson: json_data } // Add new version
                         },
                         lockedBy: req.user._id,
-                        dataXml: JSON.stringify(json_data)
+                        dataXml: JSON.stringify(json_data),
+                        vertices: JSON.stringify(vertices)
                     },
                     { new: true } // Return the updated document
                 );
@@ -153,7 +155,7 @@ exports.saveValidationDocument = async (req, res) => {
 exports.validateDocument = async (req, res) => {
     try {
         const { documentId } = req.params; // document id
-        const { json_data, versionNumber } = req.body;
+        const { json_data, versionNumber, vertices={} } = req.body;
 
         // update document
         var validated = await Document.findOneAndUpdate(
@@ -165,6 +167,7 @@ exports.validateDocument = async (req, res) => {
                     [`validatedBy.${versionNumber}`]: req.user._id, // Sets the validation field for user
                     status: versionNumber === 'v2' ? 'validated' : 'progress',
                     dataXml: JSON.stringify(json_data),
+                    vertices: JSON.stringify(vertices),
                     isLocked: false,
                     lockedBy: null
                 }
@@ -190,6 +193,7 @@ exports.validateDocument = async (req, res) => {
                         [`validatedBy.${versionNumber}`]: req.user._id, // Sets the validation field for user
                         status: versionNumber === 'v2' ? 'validated' : 'progress',
                         dataXml: JSON.stringify(json_data),
+                        vertices: JSON.stringify(vertices),
                         lockedBy: null,
                         isLocked: false
                     }
@@ -309,6 +313,20 @@ exports.rejectDocument = async (req, res) => {
     }
 
 }
+const removeKeysEndingWithId = (data) => {
+    if (Array.isArray(data)) {
+        // Process each item in the array
+        return data.map(item => removeKeysEndingWithId(item));
+    } else if (typeof data === 'object' && data !== null) {
+        // Process each key-value pair in the object
+        return Object.fromEntries(
+            Object.entries(data)
+            .filter(([key]) => !key.endsWith('Id') && key !== 'key' && key !== 'id') // Exclude keys ending with "Id", "key", and "id"
+                .map(([key, value]) => [key, removeKeysEndingWithId(value)]) // Recursively process values
+        );
+    }
+    return data; // Return primitive values as-is
+};
 
 exports.createXMLFile = async (req, res) => {
     try {
@@ -316,7 +334,7 @@ exports.createXMLFile = async (req, res) => {
         // Create a new Builder instance
         const builder = new Builder();
         // Convert JSON to XML
-        const xml = builder.buildObject(json);
+        const xml = builder.buildObject(removeKeysEndingWithId(json));
 
         // Define the file path where XML will be written
         const filePath = path.join(__dirname, 'output.xml');
@@ -346,6 +364,17 @@ exports.createXMLFile = async (req, res) => {
     }
 }
 
+exports.deleteDocuments = async (req, res) => {
+    try {
+        const { documents } = req.body;
+        // find documents
+        const docs = await Document.deleteMany({ _id: { $in: documents }});
+        res.status(200).json({ ok: true });
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({ ok: false });
+    }
+}
 
 // Function to read and convert XML to JSON using Promises
 async function convertXmlToJson(fileUrl) {

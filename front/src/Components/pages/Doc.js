@@ -2,10 +2,10 @@ import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } fr
 import Input from "../others/Input";
 // import PDFViewer from "../others/PDFViewer";
 import { json, useNavigate, useParams } from "react-router-dom";
-import { addPrefixToKeys, changeObjectValue, CURRENCY_LIST, GenerateXMLFromResponse, getVerticesOnJSOn, reorderKeys } from '../../utils/utils';
+import { addPrefixToKeys, changeObjectValue, CURRENCY_LIST, formParserOrder, GenerateXMLFromResponse, getVerticesOnJSOn, invoiceOrder, reorderKeys } from '../../utils/utils';
 import service from '../services/fileService'
 import ValidationSteps from "../others/ValidationSteps";
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Skeleton, Snackbar, Typography } from '@mui/material'
+import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Skeleton, Snackbar, Typography } from '@mui/material'
 import { SwipeLeftAlt, PublishedWithChanges, Save, Cancel, ArrowLeftSharp, RemoveCircle, PictureAsPdf } from '@mui/icons-material'
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import Header from "../others/Header";
@@ -20,7 +20,11 @@ import DateInput from "../others/DateInput";
 import InputLookup from "../others/lookup/InputLookup";
 import { useDispatch } from "react-redux";
 import { setCurrency } from "../redux/currencyReducer";
+import { convertImageToText } from "../services/capture-service";
+import { BankStatementTableItem } from "../others/BankStatementTableItem";
+import { getCustomerById } from "../services/customer-service";
 const PDFViewer = React.lazy(() => import('../others/pdf-viewer/PDFViewerWithSnap'));
+const DraggableList = React.lazy(() => import('../orderable/orderable-value'));
 
 const defaultSnackAlert = {
   open: false,
@@ -42,9 +46,11 @@ const Doc = () => {
 
   const [doc, setDoc] = useState(null);
   const [validationStage, setValidationStage] = useState(validation || 'v1');
-  const [invoiceData, setInvoiceData] = useState({});
+  const [documentData, setDocumentData] = useState({});
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(true);
+  const defaultMapping = { field: '', activate: false, loading: false };
+  const [mapping, setMapping] = useState(defaultMapping);
   const [openPopup, setOpenPopup] = useState(false);
   const [snackAlert, setSnackAlert] = useState(defaultSnackAlert);
   const [dialogComment, setDialogComment] = useState(defaultSnackAlert);
@@ -56,7 +62,9 @@ const Doc = () => {
   // selected value from lookup
   const [selectedSupplier, setSelectedSupplier] = useState({});
   // Error on field
-  const [lineItemErrors, setLineItemErrors] = useState([])
+  const [lineItemErrors, setLineItemErrors] = useState([]);
+  // customer
+  const [customer, setCustomer] = useState(null);
   
   // redux
   const dispatch = useDispatch();
@@ -110,15 +118,19 @@ const Doc = () => {
           type: 'warning',
           message: t('document-not-found')
         });
-        setTimeout(() => {
-          navigate('/');
+        setTimeout(async () => {
+          await goToNextDocument();
         }, 5000);
         return;
       };
+
       // handle if is locked
-      if (docData.isLocked && docData.lockedBy?._id !== _User._id) {
-        return navigate(-1)
-      }
+      setTimeout(async () => {
+        if (docData.isLocked && docData.lockedBy?._id !== _User._id) {
+          // instead of going back, go to next document
+          await goToNextDocument();
+        }
+      }, 5000);
       
       if (["validated", "rejected"].includes(docData.status)) {
         await service.unlockFile(id);
@@ -134,8 +146,22 @@ const Doc = () => {
       }
 
       const jsonData = JSON.parse(String.raw`${docData.dataXml}`);
-      const reorderedJSON = reorderKeys(jsonData[docData.type || "Invoice"])
-      setInvoiceData({...jsonData, [docData.type]: reorderedJSON});
+      const reorderBy = docData.type === 'FormParser' ? formParserOrder : invoiceOrder;
+      const reorderedJSON = reorderKeys(jsonData[docData.type || "Invoice"], reorderBy);
+      if (docData.type === 'OCR') {
+        if ("OCRData" in jsonData) {
+          setDocumentData(jsonData);
+        } else {
+          const arrs = Object.entries(reorderedJSON).map(([k, v]) => v).flat().map((i, index) => ({
+            id: index,
+            value: i
+          }));
+          setDocumentData({...jsonData, [docData.type|| "Invoice"]: arrs, ...(!jsonData.OCRData) && {OCRData: [] }});
+        }
+      } else {
+        setDocumentData({...jsonData, [docData.type|| "Invoice"]: reorderedJSON});
+
+      }
       setDoc(docData);
       setLoading(false);
       setPdfUrl(docData.pdfLink);
@@ -146,13 +172,22 @@ const Doc = () => {
       }
 
       // fetch vertices json
-      try {
-        const verticesJSON = await fileService.fetchVerticesJson(docData.verticesLink);
-        const verticesArray = getVerticesOnJSOn(verticesJSON)
-        setVertices(verticesArray);
-      } catch (error) {
-        console.log("Failed to fetch JSON vertices: ", error)
+      if (docData.vertices !== '{}') {
+        setVertices(JSON.parse(docData.vertices))
+      } else {
+        try {
+          const verticesJSON = await fileService.fetchVerticesJson(docData.verticesLink);
+          const verticesArray = getVerticesOnJSOn(verticesJSON)
+          setVertices(verticesArray);
+        } catch (error) {
+          console.log("Failed to fetch JSON vertices: ", error)
+        }
       }
+
+      // get customer
+      getCustomerById().then(data => {
+        setCustomer(data);
+      })
 
     });
     
@@ -189,20 +224,19 @@ const Doc = () => {
   function handleLookupSelect(lookupValue, prefix="Supplier") {
     const object = addPrefixToKeys(lookupValue, prefix);
     setSelectedSupplier(object)
-    let newInvoiceData = JSON.parse(JSON.stringify(invoiceData));
+    let newDocumentData = JSON.parse(JSON.stringify(documentData));
     for (let i = 0; i < Object.keys(object).length; i++) {
       const key = Object.keys(object)[i];
       // Check and update key and value
-      if (key in newInvoiceData[doc.type]) {
-        newInvoiceData[doc.type][key] = object[key];
+      if (key in newDocumentData[doc.type || "Invoice"]) {
+        newDocumentData[doc.type || "Invoice"][key] = object[key];
       }
     }
-    setInvoiceData(newInvoiceData);
+    setDocumentData(newDocumentData);
   }
 
   // focus on line item cell
   const handleFocusOnLineItem = (key, id) => {
-    console.log(key, id)
     const vertices = getVerticesOnItemsArray(id, "LineItemsDetails");
     setVerticesToDraw(vertices)
   }
@@ -231,23 +265,18 @@ const Doc = () => {
   }
 
   // handle focus on input field
-  const handleFocusOnInputField = (key) => {
+  const handleFocusOnInputField = (key, fullKey) => {
     // condition for vat
     if (key.startsWith("Vat")) {
-      // find vat
-      let { Vat } = invoiceData[doc.type];
-      // check if Vat is an array
-      if (Vat.length) {
-
-      } else {
-        let id = Vat[`${key}Id`];
-        const vertices = getVerticesOnItemsArray(id, "VatDetails");
-        setVerticesToDraw(vertices)
-      }
+      // Invoice.Vat.1.VatTaxAmount
+      const [, keyId] = fullKey.split('Vat.') // to get 1.VatTaxAmount
+      // find vertices
+      const inputVertices = vertices.filter(v => v.key === keyId.replace('.', '')); // to get 1VatTaxAmount
+      setVerticesToDraw(inputVertices)
 
     } else {
-      console.log(key)
       const inputVertices = vertices.filter(v => v.key === key);
+      console.log(vertices)
       setVerticesToDraw(inputVertices)
     }
   };
@@ -262,9 +291,9 @@ const Doc = () => {
   // method to update the json by a key
   const handleUpdateJSON = useCallback((key, value) => {
     console.log('updating json...')
-    const updated = changeObjectValue(invoiceData, key, value);
-    setInvoiceData(updated)
-  }, [invoiceData]);
+    const updated = changeObjectValue(documentData, key, value);
+    setDocumentData(updated)
+  }, [documentData]);
 
   // Utility function to render form fields for nested objects
   const renderFields = useCallback((parentKey = '', data) => {
@@ -273,7 +302,7 @@ const Doc = () => {
 
         if (typeof data[key] === 'object') {
 
-          // render line item
+          // render line item 
           if (key === 'LineItem') {
             return (<LineItemTable
               data={data[key].length ? data[key] : [data[key]]}
@@ -281,9 +310,18 @@ const Doc = () => {
               onRowsUpdate={handleUpdateJSON}
               onFocus={(id) => handleFocusOnLineItem(key, id) }
               // pass vat and net amount
-              totalAmount={invoiceData?.[doc.type]['TotalAmount'] || 0}
-              netAmount={invoiceData?.[doc.type]['NetAmount'] || 0}
+              totalAmount={documentData?.[doc.type || "Invoice"]['TotalAmount'] || 0}
+              netAmount={documentData?.[doc.type || "Invoice"]['NetAmount'] || 0}
               onError={handleOnErrorLineItems}
+              type={doc?.type || "Invoice"}
+            />)
+          }
+          
+          // render table item for bank statement 
+          if (key === 'TableItem') {
+            return (<BankStatementTableItem
+              data={data[key].length ? data[key] : [data[key]]}
+              id={fullKey}
             />)
           }
 
@@ -362,6 +400,7 @@ const Doc = () => {
 
           return (
             <Input
+              // fullKey is necessary to update the json data
               key={fullKey}
               label={key}
               value={data[key]}
@@ -371,16 +410,18 @@ const Doc = () => {
               onInput={handleUpdateJSON}
               // use suggestions default value of the lookup
               suggestions={(key in selectedSupplier) ? [selectedSupplier[key]] : []}
-              onFocus={() => handleFocusOnInputField(key)}
+              onFocus={() => handleFocusOnInputField(key, fullKey)}
               onBlur={() => setVerticesToDraw([])}
               type={key.endsWith('Amount') ? 'numeric' : 'text'}
               className={key.endsWith('Amount') ? '!col-span-1/2 !w-fit' : ''}
+              onMapping={() => setMapping({ field: fullKey, activate: true})}
+              isMapping={mapping.field.endsWith(key) && mapping.activate}
             />
           );
             
         }
       });
-    }, [handleUpdateJSON, t, invoiceData, lineItemErrors, doc]);
+    }, [handleUpdateJSON, t, documentData, lineItemErrors, doc, mapping]);
 
   const renderSections = 
     (formData) => {
@@ -388,7 +429,9 @@ const Doc = () => {
         return (
           <fieldset key={sectionKey}>
             <legend>{sectionKey}</legend>
-            {renderFields(sectionKey, formData[sectionKey])}
+            <>
+              {renderFields(sectionKey, formData[sectionKey])}
+            </>
           </fieldset>
       )});
   }
@@ -398,8 +441,9 @@ const Doc = () => {
   // Submit form (do validation)
   async function handleSave() {
     service.saveValidation(id, {
-      json_data: invoiceData,
-      versionNumber: validationStage
+      json_data: documentData,
+      versionNumber: validationStage,
+      vertices: vertices
     }).then(async res => {
 
       const { ok } = await res;
@@ -430,7 +474,7 @@ const Doc = () => {
 
     // send to server
     service.validateDocument(id, {
-      json_data: invoiceData,
+      json_data: documentData,
       versionNumber: validationStage
     }).then(async res => {
 
@@ -439,7 +483,7 @@ const Doc = () => {
       if (ok) {
         if (validationStage === 'v2') {
           // download xml
-          const response = await fileService.downloadXML(invoiceData);
+          const response = await fileService.downloadXML(documentData);
 
           if (res.ok) {
             GenerateXMLFromResponse(response);
@@ -566,6 +610,41 @@ const Doc = () => {
     setSnackAlert(defaultSnackAlert)
   }
 
+  // handle capture
+  async function handleCapture(data) {
+    const { image, vertices: rectVertices } = data;
+    // extract text in the image
+    const { text } = await convertImageToText(image);
+
+    let fieldKey = mapping.field;
+    
+    // vertices to draw
+    let toDraw = vertices.find(v => fieldKey.endsWith(v.key));
+
+    // update vertice of the field
+    setVertices(prev => prev.map(v => fieldKey.endsWith(v.key) ? ({...v, vertices: rectVertices}) : v ));
+
+    // insert extracted text into the input field and anlso update JSONData
+    handleUpdateJSON(fieldKey, text.replace(/\n/g, ' ').trim());
+
+    if (toDraw) 
+      setVerticesToDraw([{ ...toDraw, vertices: rectVertices }]);
+    
+    setMapping(defaultMapping);
+
+  }
+
+  function handleShowOCRVertices(item) {
+    const verts = vertices.filter(i => i.key === item.id);
+    if (verts) setVerticesToDraw(verts)
+  }
+
+  function handleDocOCRUpdate(data) {
+    // handleUpdateJSON("OCRData", data);
+    setDocumentData(prev => ({...prev, OCRData: data}));
+  } 
+
+
   return (
     <main className="document__page">
       <Header changeLanguage={changeLanguage} />
@@ -583,7 +662,7 @@ const Doc = () => {
                 <div hidden>
                   <Button type="button" size="small" startIcon={<Cancel className="text-yellow-600" />}
                     onClick={handleCancelDocument}
-                    disabled={Object.entries(invoiceData).length === 0}
+                    disabled={Object.entries(documentData).length === 0}
                   >
                     <span className="!text-yellow-600">{t('cancel-document')}</span>
                   </Button>
@@ -591,7 +670,7 @@ const Doc = () => {
                 <div>
                   <Button type="button" size="small" startIcon={<RemoveCircle className="text-rose-600" />}
                     onClick={handleOpenRejectDocument}
-                    disabled={Object.entries(invoiceData).length === 0}
+                    disabled={Object.entries(documentData).length === 0}
                   >
                     <span className="!text-slate-600">{t('reject-document')}</span>
                   </Button>
@@ -601,7 +680,7 @@ const Doc = () => {
                   <div hidden>
                     <Button type="button" size="small" startIcon={<SwipeLeftAlt className="" />}
                       onClick={openDialogForReturningDocument}
-                      disabled={Object.entries(invoiceData).length === 0}
+                      disabled={Object.entries(documentData).length === 0}
                     >
                       <span className="!text-slate-800">{t('return-document')}</span>
                     </Button>
@@ -610,7 +689,7 @@ const Doc = () => {
                 <div>
                   <Button type="button" size="small" startIcon={<Save className="text-sky-600" />}
                     onClick={handleSave}
-                    disabled={Object.entries(invoiceData).length === 0}
+                    disabled={Object.entries(documentData).length === 0}
                   >
                     <span className="!text-slate-600">{t('save-document')}</span>
                   </Button>
@@ -618,7 +697,7 @@ const Doc = () => {
                 <div>
                   <Button type="button" size="small" startIcon={<PublishedWithChanges className="text-emerald-600" />}
                     onClick={handleValidateDocument}
-                    disabled={Object.entries(invoiceData).length === 0}
+                    disabled={Object.entries(documentData).length === 0}
                   >
                     <span className="!text-slate-600">{t('validate-document')}</span>
                   </Button>
@@ -632,7 +711,7 @@ const Doc = () => {
                       else 
                         navigate(`/document/v2/672dc298482dc4a73cf9c958`)
                     }}
-                    disabled={Object.entries(invoiceData).length === 0}
+                    disabled={Object.entries(documentData).length === 0}
                   >
                     <span className="!text-slate-600">SWITCH</span>
                   </Button>
@@ -657,45 +736,59 @@ const Doc = () => {
             </div>
             {/* Form */}
             <form onSubmit={(e) => e.preventDefault()}>
-              <div className="inputs scrollable_content custom__scroll">
-                <div className="content">
-                  {
-                    loading ?
-                      <>
-                        <Skeleton height={30} width={100} />
-                        <div className="flex gap-2">
-                          <Skeleton width={100} />
-                          <Skeleton height={40} className="w-full" />
-                        </div>
-                        <div className="flex gap-2">
-                          <Skeleton width={100} />
-                          <Skeleton height={40} className="w-full" />
-                        </div>
-                        <div className="flex gap-2">
-                          <Skeleton width={100} />
-                          <Skeleton height={40} className="w-full" />
-                        </div>
-                        <Skeleton height={30} width={100} />
-                        <div className="flex gap-2">
-                          <Skeleton width={100} />
-                          <Skeleton height={40} className="w-full" />
-                        </div>
-                        <div className="flex gap-2">
-                          <Skeleton width={100} />
-                          <Skeleton height={40} className="w-full" />
-                        </div>
-                        <div className="flex gap-2">
-                          <Skeleton width={100} />
-                          <Skeleton height={40} className="w-full" />
-                        </div>
-                      </>
-                      :
-                      Object.entries(invoiceData).length > 0 ? renderSections(invoiceData) : <span className="mx-auto text-center text-gray-400">No data to display.</span>
-                  }
-                  {/* Add some padding at bottom */}
-                  <div className="h-10"></div>
+              {
+                (doc && doc.type === 'OCR') ?
+                <Suspense fallback={<CircularProgress />}>
+                  <DraggableList
+                    dynamicKeys={customer?.dynamicKeys || []}
+                    textFragments={documentData[doc.type]}
+                    onClick={handleShowOCRVertices}
+                    onUpdate={handleDocOCRUpdate}
+                    values={documentData.OCRData}
+                  />
+                </Suspense>
+                :
+                <div className="inputs scrollable_content custom__scroll">
+                  <div className="content">
+                    {
+                      loading ?
+                        <>
+                          <Skeleton height={30} width={100} />
+                          <div className="flex gap-2">
+                            <Skeleton width={100} />
+                            <Skeleton height={40} className="w-full" />
+                          </div>
+                          <div className="flex gap-2">
+                            <Skeleton width={100} />
+                            <Skeleton height={40} className="w-full" />
+                          </div>
+                          <div className="flex gap-2">
+                            <Skeleton width={100} />
+                            <Skeleton height={40} className="w-full" />
+                          </div>
+                          <Skeleton height={30} width={100} />
+                          <div className="flex gap-2">
+                            <Skeleton width={100} />
+                            <Skeleton height={40} className="w-full" />
+                          </div>
+                          <div className="flex gap-2">
+                            <Skeleton width={100} />
+                            <Skeleton height={40} className="w-full" />
+                          </div>
+                          <div className="flex gap-2">
+                            <Skeleton width={100} />
+                            <Skeleton height={40} className="w-full" />
+                          </div>
+                        </>
+                        :
+                        
+                        Object.entries(documentData).length > 0 ? renderSections(documentData) : <span className="mx-auto text-center text-gray-400">No data to display.</span>
+                    }
+                    {/* Add some padding at bottom */}
+                    <div className="h-10"></div>
+                  </div>
                 </div>
-              </div>
+              }
             </form>
             {/* End form */}
           </div>
@@ -704,7 +797,15 @@ const Doc = () => {
         <Panel className="right_pane" defaultSize={700}>
           <div className="document">
             <Suspense fallback={<>...</>}>
-              <PDFViewer fileUrl={pdfUrl} searchText={searchText} verticesGroups={verticesToDraw} verticesArray={vertices} />
+              <PDFViewer
+                fileUrl={pdfUrl}
+                searchText={searchText}
+                verticesGroups={verticesToDraw}
+                verticesArray={vertices}
+                drawingEnabled={mapping.activate}
+                onCancelDrawing={() => setMapping(defaultMapping)}
+                onCapture={handleCapture}
+              />
             </Suspense>
           </div>
         </Panel>

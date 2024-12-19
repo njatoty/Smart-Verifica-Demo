@@ -13,7 +13,7 @@ import i18n from '../../i18n';
 registerLocale('fr', fr);
 registerLocale('en', es);
 
-const DateInput = React.memo(({ label = '', id, value = '', defaultValue = '', onInput, onFocus, onBlur, ...props }) => {
+const DateInput = React.memo(({ label = '', id, value = '', defaultValue = '', onInput, onFocus, onBlur, className='', ...props }) => {
 
     const [val, setVal] = useState(value);
     const ref = useRef(null);
@@ -55,14 +55,15 @@ const DateInput = React.memo(({ label = '', id, value = '', defaultValue = '', o
 
     // Handle icon click to open date picker
     const handleIconClick = () => {
-        setSelectedDate(parse(val, dateFormat, new Date()))
+        let date = parse(val, dateFormat, new Date())
+        setSelectedDate(date == "Invalid Date" ? new Date() : date)
         setOpenDate(true);
         onFocus && onFocus(id, val);
         ref.current.focus();
     };
 
     return (
-        <div ref={clickRef} className='grid items-center grid-cols-3 input__form place-items-start'>
+        <div ref={clickRef} className={`grid items-center grid-cols-3 input__form place-items-start ${className}`}>
             {
                 label && <label className='col-span-1' htmlFor={id}>{makeReadable(label)}:</label>
             }
